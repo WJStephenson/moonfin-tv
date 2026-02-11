@@ -404,18 +404,6 @@ export const avplaySetDrm = (drmType, operation, drmData) => {
 	webapis.avplay.setDrm(drmType, operation, drmData);
 };
 
-export const avplayGetTracks = () => {
-	if (!isAVPlayAvailable) return [];
-	try {
-		const trackInfo = webapis.avplay.getTotalTrackInfo();
-		console.log('[tizenVideo] Track Info:', JSON.stringify(trackInfo));
-		return trackInfo;
-	} catch (e) {
-		console.warn('[tizenVideo] Failed to get track info:', e);
-		return [];
-	}
-};
-
 export const avplaySelectTrack = (type, index) => {
 	if (!isAVPlayAvailable) return;
 	try {
@@ -597,6 +585,5 @@ export default {
 	avplaySetSpeed,
 	avplaySetDrm,
 	avplaySelectTrack,
-	avplaySetSilentSubtitle,
-	avplayGetTracks
+	avplaySetSilentSubtitle
 };

@@ -5,7 +5,7 @@ import Spotlight from '@enact/spotlight';
 import Button from '@enact/sandstone/Button';
 import Scroller from '@enact/sandstone/Scroller';
 import * as playback from '../../services/playback';
-import {initTizenAPI, registerAppStateObserver, keepScreenOn, cleanupVideoElement, avplaySelectTrack, avplaySetSilentSubtitle, avplayGetTracks} from '../../services/tizenVideo';
+import {initTizenAPI, registerAppStateObserver, keepScreenOn, cleanupVideoElement, avplaySelectTrack, avplaySetSilentSubtitle} from '../../services/tizenVideo';
 import {useSettings} from '../../context/SettingsContext';
 import {TIZEN_KEYS, isBackKey} from '../../utils/tizenKeys';
 import TrickplayPreview from '../../components/TrickplayPreview';
@@ -533,7 +533,7 @@ const Player = ({item, onEnded, onBack, onPlayNext, initialAudioIndex, initialSu
 				}
 			}
 		}
-	}, [mediaSegments, settings.skipIntro, nextEpisode, showSkipCredits, showNextEpisode, startNextEpisodeCountdown, subtitleTrackEvents, subtitleOffset, settings.autoPlay]);
+	}, [mediaSegments, settings.skipIntro, nextEpisode, showSkipCredits, showNextEpisode, startNextEpisodeCountdown, subtitleTrackEvents, subtitleOffset]);
 
 	const handleWaiting = useCallback(() => {
 		setIsBuffering(true);
@@ -716,45 +716,22 @@ const Player = ({item, onEnded, onBack, onPlayNext, initialAudioIndex, initialSu
 			setSelectedSubtitleIndex(index);
 			const stream = subtitleStreams.find(s => s.index === index);
 
-			let nativeSuccess = false;
-
 			if (stream && stream.isEmbeddedNative) {
-				// Try to use AVPlay's native track selection for embedded SRT
-				try {
-					const trackInfo = avplayGetTracks();
-					// Filter for subtitle tracks
-					const subTracks = Array.isArray(trackInfo) ? trackInfo.filter(t => t.type === 'SUBTITLE') : [];
-
-					if (subTracks.length > 0) {
-						// Only count embedded streams to match Tizen's list
-						const embeddedStreams = subtitleStreams.filter(s => s.isEmbeddedNative);
-						const embeddedIndex = embeddedStreams.indexOf(stream);
-
-						if (embeddedIndex >= 0 && embeddedIndex < subTracks.length) {
-							// Use the index from the Tizen object if possible
-							const tizenIndex = subTracks[embeddedIndex].index;
-							avplaySelectTrack('SUBTITLE', tizenIndex);
-							avplaySetSilentSubtitle(false);
-							nativeSuccess = true;
-						}
-					}
-				} catch (err) {
-					console.warn('[Player] Error selecting native track:', err);
+				// Use AVPlay's native track selection for embedded SRT
+				const trackIndex = subtitleStreams.indexOf(stream);
+				if (trackIndex >= 0) {
+					avplaySelectTrack('SUBTITLE', trackIndex);
+					avplaySetSilentSubtitle(false);
 				}
-			}
-
-			if (nativeSuccess) {
 				setSubtitleTrackEvents(null);
 				setCurrentSubtitleText(null);
-			} else if (stream && (stream.isTextBased || stream.isEmbeddedNative)) {
-				// Fallback to extraction (text-based) logic
-				// This runs if it's a text stream OR if it was an embedded native stream that failed the check above
+			} else if (stream && stream.isTextBased) {
 				avplaySetSilentSubtitle(true); // hide native subs, use custom overlay
 				try {
 					const data = await playback.fetchSubtitleData(stream);
 					if (data && data.TrackEvents) {
 						setSubtitleTrackEvents(data.TrackEvents);
-						console.log('[Player] Loaded', data.TrackEvents.length, 'subtitle events (Fallback/Extracted)');
+						console.log('[Player] Loaded', data.TrackEvents.length, 'subtitle events');
 					} else {
 						setSubtitleTrackEvents(null);
 					}
