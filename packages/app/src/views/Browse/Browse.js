@@ -1008,9 +1008,17 @@ const Browse = ({
 								</>
 							)}
 
+							<div className={css.featuredLogoContainer}>
+									{currentFeatured.LogoUrl && (
+										<img
+											src={currentFeatured.LogoUrl}
+											alt={`${currentFeatured.Name} logo`}
+										/>
+									)}
+								</div>
+
 							<div className={css.featuredContent}>
 								<div className={css.featuredInfoBox} style={uiPanelStyle}>
-									<h1 className={css.featuredTitle}>{currentFeatured.Name}</h1>
 									<div className={css.featuredMeta}>
 										{currentFeatured.ProductionYear && (
 											<span className={css.metaItem}>{currentFeatured.ProductionYear}</span>
@@ -1033,14 +1041,6 @@ const Browse = ({
 									</p>
 								</div>
 
-								<div className={css.featuredLogoContainer}>
-									{currentFeatured.LogoUrl && (
-										<img
-											src={currentFeatured.LogoUrl}
-											alt={`${currentFeatured.Name} logo`}
-										/>
-									)}
-								</div>
 							</div>
 
 							{featuredItems.length > 1 && (

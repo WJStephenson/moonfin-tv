@@ -121,8 +121,8 @@
 .featuredContent {
 	position: absolute;
 	bottom: 80px;
-	left: 60px;
-	right: 60px;
+	left: 67px;
+	right: 67px;
 	display: flex;
 	align-items: flex-end;
 	justify-content: space-between;
@@ -133,20 +133,19 @@
 	background: rgba(0, 0, 0, 0.5);
 	border-radius: 16px;
 	padding: 24px 28px;
-	width: 70%;
-	flex-shrink: 0;
+	width: 100%;
+	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
 	min-height: 250px;
 }
 
 .featuredLogoContainer {
-	width: 30%;
-	padding-left: 24px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	align-self: flex-end;
+	position: absolute;
+	top: 80px;
+	left: 60px;
+	z-index: 3;
+	max-width: 400px;
 	max-height: 200px;
 	
 	img {
@@ -371,8 +370,8 @@
 	padding-left: 110px;
 }
 
-.sidebarOffset .featuredContent {
-	left: 110px;
+.sidebarOffset .featuredLogoContainer {
+	left: 100px;
 }
 
 /* Rows mode - position rows below detail section */
