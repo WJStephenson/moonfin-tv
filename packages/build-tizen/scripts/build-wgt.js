@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
+const REPO_ROOT = path.resolve(ROOT, '..', '..');
 const APP_DIR = path.resolve(ROOT, '..', 'app');
 const DIST = path.join(ROOT, 'dist');
 const TIZEN_DIR = path.join(ROOT, 'tizen');
@@ -177,6 +178,9 @@ async function main() {
 	if (fs.existsSync(DIST)) fs.rmSync(DIST, { recursive: true, force: true });
 	fs.mkdirSync(DIST, { recursive: true });
 	copyDir(path.join(APP_DIR, 'dist'), DIST);
+
+	// Clean intermediate app dist
+	fs.rmSync(path.join(APP_DIR, 'dist'), { recursive: true, force: true });
 	success('Copied build output');
 
 	// Copy banner image
@@ -287,11 +291,11 @@ async function main() {
 		warn('No ilib locale directory found — skipping locale cleanup');
 	}
 	
-	// Step 6: Clean up old .wgt files in root
+	// Step 6: Clean up old .wgt files in repo root
 	log('Cleaning up old .wgt files...');
-	const rootWgtFiles = fs.readdirSync(ROOT).filter(f => f.endsWith('.wgt'));
+	const rootWgtFiles = fs.readdirSync(REPO_ROOT).filter(f => f.endsWith('.wgt'));
 	rootWgtFiles.forEach(f => {
-		fs.unlinkSync(path.join(ROOT, f));
+		fs.unlinkSync(path.join(REPO_ROOT, f));
 		log(`Removed ${f}`);
 	});
 	
@@ -307,10 +311,10 @@ async function main() {
 	if (isSigned || signProfile) {
 		// Use an explicit signing profile (from --signed flag or TIZEN_SIGN_PROFILE env var)
 		const profile = signProfile || 'default';
-		packageCmd = `"${tizenCLI}" package -t wgt --sign "${profile}" -- "${DIST}" -o "${ROOT}"`;
+		packageCmd = `"${tizenCLI}" package -t wgt --sign "${profile}" -- "${DIST}" -o "${REPO_ROOT}"`;
 	} else {
 		// Package without explicit profile (uses active profile)
-		packageCmd = `"${tizenCLI}" package -t wgt -- "${DIST}" -o "${ROOT}"`;
+		packageCmd = `"${tizenCLI}" package -t wgt -- "${DIST}" -o "${REPO_ROOT}"`;
 	}
 	
 	if (!run(packageCmd)) {
@@ -318,15 +322,15 @@ async function main() {
 		process.exit(1);
 	}
 	
-	// Find the generated wgt in root
-	const wgtFiles = fs.readdirSync(ROOT).filter(f => f.endsWith('.wgt'));
+	// Find the generated wgt in repo root
+	const wgtFiles = fs.readdirSync(REPO_ROOT).filter(f => f.endsWith('.wgt'));
 	if (wgtFiles.length === 0) {
 		error('No .wgt file generated!');
 		process.exit(1);
 	}
 	
-	const generatedWgt = path.join(ROOT, wgtFiles[0]);
-	const finalWgt = path.join(ROOT, wgtName);
+	const generatedWgt = path.join(REPO_ROOT, wgtFiles[0]);
+	const finalWgt = path.join(REPO_ROOT, wgtName);
 	
 	// Rename to consistent name if needed
 	if (generatedWgt !== finalWgt) {

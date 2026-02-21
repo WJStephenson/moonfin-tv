@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 
 const APP_DIR = path.resolve(__dirname, '..', 'app');
+const ROOT_DIR = path.resolve(__dirname, '..', '..');
+const DIST_DIR = path.join(ROOT_DIR, 'dist');
 
 const run = (cmd, options = {}) => {
 	console.log(`> ${cmd}`);
@@ -78,22 +80,25 @@ try {
 	console.log('\n Building with Enact...');
 	run('npx enact pack -p', {cwd: APP_DIR, env: {...process.env, ENACT_ALIAS, REACT_APP_VERSION: appPkg.version}});
 
-	// Copy build output
+	// Copy build output to repo root dist/
 	console.log('\n Copying build output...');
-	if (fs.existsSync('dist')) fs.rmSync('dist', {recursive: true, force: true});
-	copyDirRecursive(path.join(APP_DIR, 'dist'), 'dist');
+	if (fs.existsSync(DIST_DIR)) fs.rmSync(DIST_DIR, {recursive: true, force: true});
+	copyDirRecursive(path.join(APP_DIR, 'dist'), DIST_DIR);
+
+	// Clean intermediate app dist
+	fs.rmSync(path.join(APP_DIR, 'dist'), {recursive: true, force: true});
 
 	// Copy banner
 	console.log('\n Copying banner...');
 	const bannerSrc = path.join(APP_DIR, 'resources', 'banner-dark.png');
-	const bannerDest = path.join('dist', 'resources', 'banner-dark.png');
+	const bannerDest = path.join(DIST_DIR, 'resources', 'banner-dark.png');
 	if (fs.existsSync(bannerSrc)) {
 		fs.mkdirSync(path.dirname(bannerDest), {recursive: true});
 		fs.copyFileSync(bannerSrc, bannerDest);
 	}
 
 	// Find ilib locale directory (may be nested under _/_/ in mono-repo builds)
-	const ilibDir = findDir(path.resolve('dist'), 'ilib');
+	const ilibDir = findDir(DIST_DIR, 'ilib');
 	const localeDir = ilibDir ? path.join(ilibDir, 'locale') : null;
 
 	if (localeDir && fs.existsSync(localeDir)) {
@@ -136,7 +141,7 @@ try {
 	}
 
 	// Remove unused font weights to reduce size
-	const museoDir = findDir(path.resolve('dist'), 'MuseoSans');
+	const museoDir = findDir(DIST_DIR, 'MuseoSans');
 	if (museoDir) {
 		console.log('\n Removing unused font weights...');
 		const fontFiles = ([
@@ -154,11 +159,11 @@ try {
 	const webosMeta = path.join(__dirname, 'webos-meta');
 	if (fs.existsSync(webosMeta)) {
 		for (const file of fs.readdirSync(webosMeta)) {
-			fs.copyFileSync(path.join(webosMeta, file), path.join('dist', file));
+			fs.copyFileSync(path.join(webosMeta, file), path.join(DIST_DIR, file));
 		}
 	}
 	fs.mkdirSync('build', {recursive: true});
-	run('npx ares-package ./dist -o ./build --no-minify');
+	run(`npx ares-package ${DIST_DIR} -o ./build --no-minify`);
 
 	// Update manifest with version and hash
 	console.log('\n Updating manifest...');
