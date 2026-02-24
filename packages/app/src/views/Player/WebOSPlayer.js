@@ -14,6 +14,7 @@ import {
 } from '@moonfin/platform-webos/video';
 import {useSettings} from '../../context/SettingsContext';
 import PlayerControls, {usePlayerButtons} from './PlayerControls';
+import useSegmentPopups from './useSegmentPopups';
 import {
 	SpottableButton, NextEpisodeContainer, CONTROLS_HIDE_DELAY
 } from './PlayerConstants';
@@ -47,11 +48,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 	const [playbackRate, setPlaybackRate] = useState(1);
 	const [selectedQuality, setSelectedQuality] = useState(null);
 	const [mediaSegments, setMediaSegments] = useState(null);
-	const [showSkipIntro, setShowSkipIntro] = useState(false);
-	const [showSkipCredits, setShowSkipCredits] = useState(false);
 	const [nextEpisode, setNextEpisode] = useState(null);
-	const [showNextEpisode, setShowNextEpisode] = useState(false);
-	const [nextEpisodeCountdown, setNextEpisodeCountdown] = useState(null);
 	const [isSeeking, setIsSeeking] = useState(false);
 	const [seekPosition, setSeekPosition] = useState(0);
 	const [mediaSourceId, setMediaSourceId] = useState(null);
@@ -74,8 +71,6 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 	const playSessionRef = useRef(null);
 	const runTimeRef = useRef(0);
 	const healthMonitorRef = useRef(null);
-	const nextEpisodeTimerRef = useRef(null);
-	const hasTriggeredNextEpisodeRef = useRef(false);
 	const unregisterAppStateRef = useRef(null);
 	const controlsTimeoutRef = useRef(null);
 	const lastSeekTargetRef = useRef(null);
@@ -179,15 +174,8 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 			setIsLoading(true);
 			setError(null);
 
-			setShowNextEpisode(false);
-			setShowSkipCredits(false);
-			setNextEpisodeCountdown(null);
-			setShowSkipIntro(false);
+			resetPopups();
 			setNextEpisode(null);
-			if (nextEpisodeTimerRef.current) {
-				clearInterval(nextEpisodeTimerRef.current);
-				nextEpisodeTimerRef.current = null;
-			}
 
 			try {
 				const savedPosition = item.UserData?.PlaybackPositionTicks || 0;
@@ -381,9 +369,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 			playback.stopProgressReporting();
 			playback.stopHealthMonitoring();
 
-			if (nextEpisodeTimerRef.current) {
-				clearInterval(nextEpisodeTimerRef.current);
-			}
+			resetPopups();
 			if (controlsTimeoutRef.current) {
 				clearTimeout(controlsTimeoutRef.current);
 			}
@@ -587,23 +573,27 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 		}
 	}, [hasTriedTranscode, playMethod]);
 
-	const cancelNextEpisodeCountdown = useCallback(() => {
-		if (nextEpisodeTimerRef.current) {
-			clearInterval(nextEpisodeTimerRef.current);
-			nextEpisodeTimerRef.current = null;
-		}
-		setNextEpisodeCountdown(null);
-		setShowNextEpisode(false);
-		setShowSkipCredits(false);
-	}, []);
+	const onPlayNextWithCleanup = useCallback(async (episode) => {
+		await playback.reportStop(positionRef.current);
+		onPlayNext(episode);
+	}, [onPlayNext]);
 
-	const handlePlayNextEpisode = useCallback(async () => {
-		if (nextEpisode && onPlayNext) {
-			cancelNextEpisodeCountdown();
-			await playback.reportStop(positionRef.current);
-			onPlayNext(nextEpisode);
+	const onSeekToIntroEnd = useCallback(() => {
+		if (mediaSegments?.introEnd && videoRef.current) {
+			seekToTicks(mediaSegments.introEnd);
 		}
-	}, [nextEpisode, onPlayNext, cancelNextEpisodeCountdown]);
+	}, [mediaSegments, seekToTicks]);
+
+	const {
+		showSkipIntro, showSkipCredits, showNextEpisode, nextEpisodeCountdown,
+		handleSkipIntro, handlePlayNextEpisode, cancelNextEpisodeCountdown,
+		checkSegments, handlePopupKeyDown, resetPopups
+	} = useSegmentPopups({
+		mediaSegments, nextEpisode, settings, runTimeRef,
+		activeModal, controlsVisible, hideControls, showControls,
+		onSeekToIntroEnd,
+		onPlayNext: onPlayNextWithCleanup
+	});
 
 	// Audio playlist: next track
 	const handleNextTrack = useCallback(async () => {
@@ -626,47 +616,6 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 			onPlayNext(audioPlaylist[audioPlaylistIndex - 1]);
 		}
 	}, [hasPrevTrack, onPlayNext, audioPlaylist, audioPlaylistIndex]);
-
-	const startNextEpisodeCountdown = useCallback(() => {
-		if (nextEpisodeTimerRef.current) return;
-
-		let countdown = 15;
-		setNextEpisodeCountdown(countdown);
-
-		nextEpisodeTimerRef.current = setInterval(() => {
-			countdown--;
-			setNextEpisodeCountdown(countdown);
-
-			if (countdown <= 0) {
-				clearInterval(nextEpisodeTimerRef.current);
-				nextEpisodeTimerRef.current = null;
-				handlePlayNextEpisode();
-			}
-		}, 1000);
-	}, [handlePlayNextEpisode]);
-
-	// Auto-focus skip intro button when it appears
-	useEffect(() => {
-		if (showSkipIntro && !activeModal) {
-			hideControls();
-			window.requestAnimationFrame(() => {
-				Spotlight.focus('skip-intro-btn');
-			});
-		}
-	}, [showSkipIntro, activeModal, hideControls]);
-
-	// Auto-focus next episode popup when it appears
-	useEffect(() => {
-		if ((showSkipCredits || showNextEpisode) && nextEpisode && !activeModal) {
-			hideControls();
-			window.requestAnimationFrame(() => {
-				const defaultBtn = document.querySelector('[data-spot-default="true"]');
-				if (defaultBtn) {
-					Spotlight.focus(defaultBtn);
-				}
-			});
-		}
-	}, [showSkipCredits, showNextEpisode, nextEpisode, activeModal, hideControls]);
 
 	const handleLoadedMetadata = useCallback(() => {
 		if (videoRef.current) {
@@ -736,43 +685,9 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 				setCurrentSubtitleText(foundSubtitle);
 			}
 
-			if (mediaSegments && settings.skipIntro) {
-				const {introStart, introEnd, creditsStart} = mediaSegments;
-
-				if (introStart !== null && introEnd !== null) {
-					const inIntro = ticks >= introStart && ticks < introEnd;
-					setShowSkipIntro(inIntro);
-				}
-
-				if (creditsStart !== null && nextEpisode) {
-					const inCredits = ticks >= creditsStart;
-					if (inCredits && !showSkipCredits) {
-						// Auto-skip credits if setting enabled
-						if (settings.skipCredits) {
-							handlePlayNextEpisode();
-							return;
-						}
-						setShowSkipCredits(true);
-						if (settings.autoPlay) {
-							startNextEpisodeCountdown();
-						}
-					}
-				}
-			}
-
-			if (nextEpisode && runTimeRef.current > 0) {
-				const remaining = runTimeRef.current - ticks;
-				const nearEnd = remaining < 300000000;
-				if (nearEnd && !showNextEpisode && !showSkipCredits && !hasTriggeredNextEpisodeRef.current) {
-					setShowNextEpisode(true);
-					hasTriggeredNextEpisodeRef.current = true;
-					if (settings.autoPlay) {
-						startNextEpisodeCountdown();
-					}
-				}
-			}
+			checkSegments(ticks);
 		}
-	}, [playMethod, mediaSegments, settings.skipIntro, settings.skipCredits, settings.autoPlay, nextEpisode, showSkipCredits, showNextEpisode, startNextEpisodeCountdown, handlePlayNextEpisode, subtitleTrackEvents, subtitleOffset]);
+	}, [playMethod, checkSegments, subtitleTrackEvents, subtitleOffset]);
 
 	const handleWaiting = useCallback(() => {
 		setIsBuffering(true);
@@ -917,13 +832,6 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 	const handleForward = useCallback(() => {
 		if (videoRef.current) seekByOffset(settings.seekStep);
 	}, [settings.seekStep, seekByOffset]);
-
-	const handleSkipIntro = useCallback(() => {
-		if (mediaSegments?.introEnd && videoRef.current) {
-			seekToTicks(mediaSegments.introEnd);
-		}
-		setShowSkipIntro(false);
-	}, [mediaSegments, seekToTicks]);
 
 	const openModal = useCallback((modal) => {
 		setActiveModal(modal);
@@ -1161,42 +1069,8 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 	useEffect(() => {
 		const handleKeyDown = (e) => {
 			const key = e.key || e.keyCode;
-			const nextEpisodeVisible = (showSkipCredits || showNextEpisode) && nextEpisode && !activeModal && !controlsVisible;
-			const skipIntroVisible = showSkipIntro && !activeModal && !controlsVisible;
 
-			// When skip intro button is showing, let Spotlight handle focus naturally
-			if (skipIntroVisible) {
-				if (key === 'GoBack' || key === 'Backspace' || e.keyCode === 461 || e.keyCode === 8 || e.keyCode === 27) {
-					e.preventDefault();
-					e.stopPropagation();
-					setShowSkipIntro(false);
-					return;
-				}
-				// Let Enter and arrow keys pass through to Spotlight
-				return;
-			}
-
-			// When next episode popup is showing, block all keys except Back and Enter
-			if (nextEpisodeVisible) {
-				if (key === 'GoBack' || key === 'Backspace' || e.keyCode === 461 || e.keyCode === 8 || e.keyCode === 27) {
-					e.preventDefault();
-					e.stopPropagation();
-					cancelNextEpisodeCountdown();
-					return;
-				}
-				// Let Enter through for Spotlight button activation
-				if (key === 'Enter' || e.keyCode === 13) {
-					return;
-				}
-				// Allow Left/Right for navigating between buttons
-				if (key === 'ArrowLeft' || e.keyCode === 37 || key === 'ArrowRight' || e.keyCode === 39) {
-					return;
-				}
-				// Block everything else
-				e.preventDefault();
-				e.stopPropagation();
-				return;
-			}
+			if (handlePopupKeyDown(e)) return;
 
 			// Media playback keys (webOS remote)
 			// Play: 415, Pause: 19, Fast-forward: 417, Rewind: 412, Stop: 413
@@ -1307,7 +1181,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 
 		window.addEventListener('keydown', handleKeyDown, true);
 		return () => window.removeEventListener('keydown', handleKeyDown, true);
-	}, [controlsVisible, activeModal, closeModal, hideControls, handleBack, showControls, handlePlayPause, handleForward, handleRewind, currentTime, settings.seekStep, seekByOffset, showNextEpisode, showSkipCredits, showSkipIntro, nextEpisode, cancelNextEpisodeCountdown, bottomButtons.length]);
+	}, [controlsVisible, activeModal, closeModal, hideControls, handleBack, showControls, handlePlayPause, handleForward, handleRewind, currentTime, settings.seekStep, seekByOffset, handlePopupKeyDown, bottomButtons.length]);
 
 	const displayTime = isSeeking ? (seekPosition / 10000000) : currentTime;
 	const progressPercent = duration > 0 ? (displayTime / duration) * 100 : 0;
