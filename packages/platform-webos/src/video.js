@@ -448,8 +448,7 @@ export const cleanupVideoElement = async (videoElement, options = {}) => {
 	if (videoElement.srcObject) {
 		videoElement.srcObject = null;
 	}
-	// Do NOT remove from DOM — React owns the element.
-	// Do NOT call load() — corrupts Chrome 53 hardware decoder.
+	videoElement.load();
 
 	_lastCleanupTimestamp = Date.now();
 

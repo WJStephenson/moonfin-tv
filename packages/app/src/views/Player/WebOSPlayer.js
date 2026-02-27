@@ -626,6 +626,9 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 			const useHlsJs = isHls && !nativeHlsOk && Hls.isSupported();
 			console.log('[Player] Source type:', { isHls, mimeType, autoplay: video.autoplay, webosVersion, nativeHlsOk, useHlsJs, forceHlsJs: forceHlsJsRef.current });
 
+			video.removeAttribute('src');
+			video.load();
+
 			if (useHlsJs) {
 				console.log('[Player] Using hls.js for HLS playback (webOS ' + webosVersion + ')');
 				const hls = new Hls({
@@ -713,6 +716,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 			} else {
 				destroyHlsPlayer();
 				video.src = srcUrl;
+				video.load();
 			}
 
 			if (playbackStartTimeoutRef.current) {
