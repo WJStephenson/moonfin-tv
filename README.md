@@ -1,85 +1,248 @@
-# Moonfin
+<h1 align="center">Moonfin</h1>
+<h3 align="center">Enhanced Jellyfin client for Smart TVs</h3>
 
-Jellyfin client for LG webOS and Samsung Tizen smart TVs, built with Enact/React.
+---
 
-## Repository Structure
+<p align="center">
+  <img alt="Moonfin" src="packages/app/resources/splash.png" />
+</p>
+
+[![License](https://img.shields.io/github/license/Moonfin-Client/Smart-TV.svg)](https://github.com/Moonfin-Client/Smart-TV)
+[![Release](https://img.shields.io/github/release/Moonfin-Client/Smart-TV.svg)](https://github.com/Moonfin-Client/Smart-TV/releases)
+
+<a href="https://www.buymeacoffee.com/moonfin" target="_blank"><img src="https://github.com/user-attachments/assets/fe26eaec-147f-496f-8e95-4ebe19f57131" alt="Buy Me A Coffee" ></a>
+
+Moonfin is an enhanced Jellyfin client built with the **Enact/Sandstone framework**, optimized for Samsung Smart TVs (Tizen) and LG Smart TVs (webOS). A single shared codebase powers both platforms with native video pipelines tuned for each.
+
+## Features & Enhancements
+
+Moonfin builds on the solid foundation of Jellyfin with targeted improvements for the TV viewing experience.
+
+### Hardware-Accelerated Video Playback
+- **Samsung AVPlay** (Tizen) and **Starfish/HTML5** (webOS) native video pipelines
+- Smooth playback with proper hardware decoding for H.264, HEVC, HDR10, HLG, and Dolby Vision (where supported)
+- Automatic DirectPlay → native transcode → hls.js fallback chain when a format isn't natively supported
+- Enhanced player controls optimized for TV remote navigation
+
+### Multi-Server & Unified Library Mode
+- **Unified Library Mode** — Combine content from all connected Jellyfin servers into a single view
+- Browse, search, and play content across multiple servers seamlessly
+- Server badges show content origin when unified mode is enabled
+- Cross-server playback with proper progress tracking per server
+- Favorites, genres, and search aggregate results from all servers
+
+### Jellyseerr Integration
+
+Moonfin is the first smart TV client with native Jellyseerr support.
+
+- Browse trending, popular, and recommended movies/shows and filter by genres, studio, network, and keywords
+- Request content in HD or 4K directly from your TV
+- **NSFW Content Filtering** (optional) using Jellyseerr/TMDB metadata
+- Smart season selection when requesting TV shows
+- View all your pending, approved, and available requests
+- Authenticate using your API key (required for TV webview compatibility)
+- Global search includes Jellyseerr results
+- Rich backdrop images for a cinematic discovery experience
+
+### Enhanced Navigation
+- Quick access home button and search functionality
+- Shuffle button for instant random movie/TV show discovery
+- Genres menu to browse all media by genre in one place
+- Dynamic library buttons automatically populate based on your Jellyfin libraries
+- One-click navigation to any library or collection directly from the navbar
+- Cleaner icon-based design for frequently used actions
+
+### Playback & Media Control
+- **Theme Music Playback** — Background theme music for TV shows and movies with volume control
+- **Pre-Playback Track Selection** — Choose your preferred audio track and subtitle before playback starts
+- **Next Episode Countdown** — Skip button with countdown timer when next episode is available
+- **Trickplay Preview** — Thumbnail previews when scrubbing through video
+- **Media Segment Skipping** — Skip intros, credits, and other segments automatically
+
+### Live TV & Recordings
+- **Electronic Program Guide (EPG)** — Browse live TV channels with program information in a much simpler interface
+- **DVR Recordings** — Access and play back recorded content with a simple button press
+
+### Improved Details Screen
+- Metadata organized into clear sections: genres, directors, writers, studios, and runtime
+- Taglines displayed above the description where available
+- Cast photos appear as circles for a cleaner look
+- Fits more useful information on screen without feeling cramped
+
+### UI Polish
+- **Built with Enact/Sandstone** — Modern React-based framework optimized for TV experiences
+- **Accent Color Customization** — Personalize the UI with your preferred accent color
+- **Backdrop Blur Settings** — Customizable blur effects for home and details pages
+- Item details show up right in the row — no need to open every title to see what it is
+- Buttons look better when not focused (transparent instead of distracting)
+- Better contrast makes text easier to read
+- Transitions and animations feel responsive
+- Consistent icons and visual elements throughout
+
+---
+
+## Installation
+
+### Pre-built Releases
+
+Download the latest release from the [Releases page](https://github.com/Moonfin-Client/Smart-TV/releases).
+
+| Platform | File | Supported Devices |
+|---|---|---|
+| **Tizen** | `.wgt` | Samsung Smart TVs (2018+, Tizen 4.0+) |
+| **webOS** | `.ipk` | LG Smart TVs (2018+, webOS 4.0+) |
+
+### Sideloading — Samsung (Tizen)
+
+The easiest way to install on Samsung TVs is using the **Jellyfin 2 Samsung** tool:
+
+1. Download [Jellyfin 2 Samsung](https://github.com/PatrickSt1991/Samsung-Jellyfin-Installer) by [@PatrickSt1991](https://github.com/PatrickSt1991)
+2. Enable Developer Mode on your Samsung TV:
+   - Go to **Settings → General → System Manager → Developer Mode**
+   - Turn Developer Mode **ON**
+   - Enter your PC's IP address
+   - Restart the TV
+3. Run the tool, select the Moonfin `.wgt` file, enter your TV's IP address, and install
+
+### Sideloading — LG (webOS)
+
+1. Enable Developer Mode on your LG TV via the [LG Developer portal](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app)
+2. Install the webOS CLI tools (`@webos-tools/cli`)
+3. Set up your TV as a device: `ares-setup-device`
+4. Install the IPK: `ares-install --device <your-tv> moonfin.ipk`
+
+### Seerr/Jellyseerr Setup (Optional)
+
+Seerr/Jellyseerr integration uses the **Moonfin Jellyfin Plugin** to proxy requests through your Jellyfin server, avoiding CORS and cookie issues on TV webviews.
+
+1. Install the [Moonfin Plugin](https://github.com/Moonfin-Client/Plugin) on your Jellyfin server
+2. Configure the plugin with your Seerr/Jellyseerr server URL and API key in the Jellyfin admin dashboard
+3. In Moonfin on your TV, go to **Settings → PLugin** and enable the integration — no additional URL or key entry is needed on the TV side, it connects through your Jellyfin server automatically
+
+> **Note:** The plugin acts as a server-side proxy, so your TV only needs to reach your Jellyfin server. Seerr/Jellyseerr does not need to be directly accessible from the TV.
+---
+
+## Building from Source
+
+### Prerequisites
+- Node.js 18+ and npm 9+
+
+### Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Build for Samsung (creates .wgt)
+npm run build:tizen
+
+# Build for LG (creates .ipk)
+npm run build:webos
+
+# Development server (Tizen mode)
+npm run dev:tizen
+
+# Development server (webOS mode)
+npm run dev:webos
+```
+
+Build outputs:
+- Tizen: `Moonfin-v2.0.1.wgt` in the project root
+- webOS: `org.moonfin.webos_2.0.1_all.ipk` in `packages/build-webos/build/`
+
+---
+
+## Development
+
+This project uses **npm workspaces** and **Enact** to share a single React codebase across both platforms while keeping platform-specific code isolated.
+
+### Project Structure
 
 ```
 moonfin/
 ├── packages/
-│   ├── app/                  # Shared application code (React components, services, hooks)
-│   ├── platform-webos/       # webOS-specific implementations (HTML5/HLS.js video, Luna storage)
-│   ├── platform-tizen/       # Tizen-specific implementations (AVPlay video, Smart Hub)
-│   ├── build-webos/          # webOS build tooling → produces .ipk
-│   └── build-tizen/          # Tizen build tooling → produces .wgt
+│   ├── app/                  # Shared application code
+│   │   └── src/
+│   │       ├── App/          # Main application component
+│   │       ├── components/   # Reusable UI components
+│   │       ├── context/      # React context providers
+│   │       ├── hooks/        # Custom React hooks
+│   │       ├── services/     # API and service modules
+│   │       ├── views/        # Page components
+│   │       ├── utils/        # Helpers and key handling
+│   │       └── styles/       # Global styles and variables
+│   ├── platform-tizen/       # Samsung AVPlay, Smart Hub, Tizen storage
+│   ├── platform-webos/       # Starfish/HTML5 video, Luna storage
+│   ├── build-tizen/          # Tizen build scripts → .wgt
+│   └── build-webos/          # webOS build scripts → .ipk
 ├── package.json              # npm workspaces root
 └── .eslintrc.js              # Shared ESLint config
 ```
 
-## Prerequisites
+### Platform Abstraction
 
-- Node.js 18+
-- npm 9+
-- `@enact/cli` (installed as devDependency)
-- For webOS: `@webos-tools/cli` and an LG developer account
-- For Tizen: Samsung Tizen Studio with `sdb` and a Samsung developer certificate
-
-## Setup
-
-```bash
-npm install
-```
-
-## Build Commands
-
-| Command | Output | Description |
-|---|---|---|
-| `npm run build:webos` | `.ipk` in `packages/build-webos/` | Production webOS package |
-| `npm run build:tizen` | `.wgt` in `packages/build-tizen/` | Production Tizen package |
-| `npm run dev:webos` | localhost:8080 | Development server (webOS mode) |
-| `npm run dev:tizen` | localhost:8080 | Development server (Tizen mode) |
-
-## Platform Abstraction
-
-Shared code in `packages/app/` never imports directly from `@enact/webos`, `tizen.*`, or `webapis.*`. Platform-specific behavior is isolated through:
-
-### Runtime Detection (`packages/app/src/platform.js`)
+Shared code in `packages/app/` never imports directly from `@enact/webos`, `tizen.*`, or `webapis.*`. Platform-specific behavior is isolated through runtime detection:
 
 ```js
-import {isTizen, isWebOS, getPlatform} from './platform';
+import { isTizen, isWebOS, getPlatform } from './platform';
 ```
 
-### Dynamic Platform Imports
+Services like video, storage, and device profiles use `getPlatform()` to dynamically import the correct platform implementation at runtime.
 
-Services like video, storage, device profile, and server logger use runtime detection to load the correct platform implementation:
+### Developer Notes
+- **Enact/Sandstone** provides TV-optimized UI components and Spotlight navigation
+- **Tizen**: AVPlay API for video, `tizen.tvinputdevice` for remote keys
+- **webOS**: Shared HTML5 video element with `audioTracks` API, Luna service calls for storage
+- Packaged apps (`.wgt` / `.ipk`) bypass CORS restrictions
+- Cross-origin cookies don't persist in either platform's webview — use API keys instead
+- UI changes should be tested on actual TV hardware when possible
 
-```js
-// packages/app/src/services/video.js
-if (getPlatform() === 'tizen') {
-    impl = await import('@moonfin/platform-tizen/video');
-} else {
-    impl = await import('@moonfin/platform-webos/video');
-}
-```
+---
 
-### Unified Key Handling (`packages/app/src/utils/keys.js`)
+## Contributing
 
-A single key abstraction provides `KEYS`, `isBackKey()`, `isExitKey()`, and `registerKeys()` for both platforms.
+We welcome contributions to Moonfin!
 
-### Conditional Platform Code in Shared Files
+### Guidelines
+1. **Check existing issues** — See if your idea or bug is already reported
+2. **Discuss major changes** — Open an issue first for significant features
+3. **Follow code style** — Match the existing codebase conventions
+4. **Test on TV devices** — Verify changes work on actual hardware when possible
 
-Two files in shared code contain guarded platform references (acceptable):
+### Pull Request Process
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes with clear commit messages
+4. Test on Samsung and/or LG TV hardware
+5. Submit a pull request with a detailed description
 
-- `App.js` — `tizen.application.exit()` and `import('@enact/webos/application')` behind `isTizen()`/`isWebOS()` checks
-- `keys.js` — `tizen.tvinputdevice` behind `typeof tizen === 'undefined'` guard
+---
 
-## Adding Platform-Specific Code
+## Support & Community
 
-1. Add the implementation in `packages/platform-{webos,tizen}/src/`
-2. Export it via the platform package's `package.json` exports map
-3. In shared code, use `getPlatform()` to dynamically import the correct module
-4. Never add `@enact/webos`, `tizen.*`, or `webapis.*` references to `packages/app/`
+- **Issues** — [GitHub Issues](https://github.com/Moonfin-Client/Smart-TV/issues) for bugs and feature requests
+- **Discussions** — [GitHub Discussions](https://github.com/Moonfin-Client/Smart-TV/discussions) for questions and ideas
+- **Jellyfin** — [jellyfin.org](https://jellyfin.org) for server-related questions
+
+---
+
+## Credits
+
+Moonfin is built upon the excellent work of:
+
+- **[Jellyfin Project](https://jellyfin.org)** — The media server
+- **[Enact](https://enactjs.com)** — React-based framework for TV apps
+- **Jellyfin Tizen & webOS Contributors** — The original client developers
+- **Moonfin Contributors** — Everyone who has contributed to this project
+
+---
 
 ## License
 
-MPL-2.0
+This project is licensed under the MPL 2.0 license. Some parts incorporate content licensed under the Apache 2.0 license. All images are taken from and licensed under the same license as https://github.com/jellyfin/jellyfin-ux. See the [LICENSE](LICENSE) file for details.
+
+---
+<p align="center">
+   <strong>Moonfin for Smart TVs</strong> is an independent fork and is not affiliated with the Jellyfin project.<br>
+   <a href="https://github.com/Moonfin-Client">← Back to main Moonfin project</a>
+</p>
