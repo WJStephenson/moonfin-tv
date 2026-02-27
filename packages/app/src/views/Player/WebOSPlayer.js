@@ -87,6 +87,7 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 	const forceHlsJsRef = useRef(false);
 	const prevItemIdRef = useRef(null);
 	const hlsPlayerRef = useRef(null);
+	const pendingAudioRef = useRef(null);
 	const transcodeOffsetTicksRef = useRef(0);
 	const transcodeOffsetDetectedRef = useRef(true);
 	const playbackStartTimeoutRef = useRef(null);
@@ -263,6 +264,8 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 					enableDirectPlay: !settings.preferTranscode,
 					enableDirectStream: !settings.preferTranscode,
 					forceDirectPlay: settings.forceDirectPlay,
+					audioStreamIndex: initialAudioIndex,
+					subtitleStreamIndex: initialSubtitleIndex,
 					item: item
 				});
 
@@ -302,8 +305,14 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 				const defaultAudio = result.audioStreams?.find(s => s.isDefault);
 				if (initialAudioIndex !== undefined && initialAudioIndex !== null) {
 					setSelectedAudioIndex(initialAudioIndex);
+					// Store for onFirstTimeUpdate to apply via audioTracks API
+					pendingAudioRef.current = {
+						streamIndex: initialAudioIndex,
+						audioStreams: result.audioStreams || []
+					};
 				} else if (defaultAudio) {
 					setSelectedAudioIndex(defaultAudio.index);
+					pendingAudioRef.current = null;
 				}
 
 				console.log('[Player] === SUBTITLE SELECTION START ===');
@@ -737,6 +746,21 @@ const Player = ({item, resume, initialAudioIndex, initialSubtitleIndex, onEnded,
 						console.log('[Player] Resume via #t= fragment successful, position:', video.currentTime, 's');
 					}
 					pendingResumeTicksRef.current = 0;
+				}
+
+				// Apply initial audio track selection via audioTracks API
+				const pending = pendingAudioRef.current;
+				if (pending && video.audioTracks?.length > 1) {
+					const trackPosition = pending.audioStreams
+						.map(s => s.index)
+						.indexOf(pending.streamIndex);
+					if (trackPosition >= 0 && trackPosition < video.audioTracks.length) {
+						for (let i = 0; i < video.audioTracks.length; i++) {
+							video.audioTracks[i].enabled = (i === trackPosition);
+						}
+						console.log('[Player] Applied initial audio track via audioTracks API, index:', pending.streamIndex);
+					}
+					pendingAudioRef.current = null;
 				}
 			};
 			video.addEventListener('timeupdate', onFirstTimeUpdate);
