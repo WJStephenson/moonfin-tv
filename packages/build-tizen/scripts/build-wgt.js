@@ -258,14 +258,17 @@ async function main() {
 })();
 </script>
 <script>
-// XHR mock — intercepts ilib/locale XHR requests that fail on file:// protocol.
-// Patches prototype directly; uses WeakMap to track mocked instances.
+// On file:// protocol, intercept all non-http(s) XHR to prevent NetworkError.
+// ilib loads locale JSON via relative paths (e.g. "resources/scripts.json")
+// which resolve to file:// and throw on send(). Only http(s) requests are
+// legitimate (Jellyfin server API calls).
 (function() {
+	if (location.protocol !== 'file:') return;
 	var OrigOpen = XMLHttpRequest.prototype.open;
 	var OrigSend = XMLHttpRequest.prototype.send;
 	var mocked = new WeakMap();
 	XMLHttpRequest.prototype.open = function(method, url) {
-		if (url && (url.indexOf('file://') === 0 || url.indexOf('ilib') !== -1 || url.indexOf('locale') !== -1 || url.indexOf('/resources/') !== -1)) {
+		if (!url || (url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0)) {
 			mocked.set(this, arguments.length < 3 || !!arguments[2]);
 			return;
 		}

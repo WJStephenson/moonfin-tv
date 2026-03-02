@@ -481,6 +481,29 @@ patchFile('hls.js/dist/hls.mjs', [
 ]);
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PATCH 10: @enact/core/platform — replace Set spread with array filter dedup
+//
+// platform.js uses _toConsumableArray(new Set(platforms.map(...))) to get unique
+// platform names. Babel's helper calls Array.from(set) which fails on Tizen 3
+// (Chrome 47). Replace with .filter() dedup — no Set iterator needed.
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('\n[Patch 10] @enact/core/platform — replace Set spread with filter dedup');
+
+patchFile('@enact/core/platform/platform.js', [
+	{
+		find: `_toConsumableArray(new Set(platforms.map(function (p) {
+  return p.platform;
+})))`,
+		replace: `platforms.map(function (p) {
+  return p.platform;
+}).filter(function (v, i, a) {
+  return a.indexOf(v) === i;
+})`,
+		description: 'Replace Set spread with indexOf dedup for Chrome 47 compat'
+	}
+]);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Summary
 // ─────────────────────────────────────────────────────────────────────────────
 console.log(`\n✓ Legacy patches complete: ${patchCount} files modified, ${skipCount} skipped\n`);
