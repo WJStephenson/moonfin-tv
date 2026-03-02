@@ -178,6 +178,27 @@ const Details = ({itemId, initialItem, onPlay, onSelectItem, onSelectPerson, bac
 				const data = await effectiveApi.getItem(itemId);
 				setItem(tagWithServerInfo(data));
 
+				const ms = data.MediaSources?.[0];
+				if (ms) {
+					const audioStreams = ms.MediaStreams?.filter(s => s.Type === 'Audio') || [];
+					const subtitleStreams = ms.MediaStreams?.filter(s => s.Type === 'Subtitle') || [];
+
+					if (ms.DefaultAudioStreamIndex != null) {
+						const idx = audioStreams.findIndex(s => s.Index === ms.DefaultAudioStreamIndex);
+						if (idx >= 0) setSelectedAudioIndex(idx);
+					}
+
+					if (ms.DefaultSubtitleStreamIndex != null) {
+						const idx = subtitleStreams.findIndex(s => s.Index === ms.DefaultSubtitleStreamIndex);
+						if (idx >= 0) setSelectedSubtitleIndex(idx);
+					} else {
+						setSelectedSubtitleIndex(-1);
+					}
+				} else {
+					setSelectedAudioIndex(0);
+					setSelectedSubtitleIndex(-1);
+				}
+
 				if (data.People?.length > 0) {
 					setCast(data.People.slice(0, 20));
 				}
