@@ -125,13 +125,46 @@ const Login = ({
 		setPassword(e.target.value);
 	}, []);
 
-	const handleUserSelect = useCallback((user) => {
+	const handleUserSelect = useCallback(async (user) => {
+		if (!user.HasPassword) {
+			setSelectedUser(user);
+			setUsername(user.Name);
+			setPassword('');
+			setIsConnecting(true);
+			setError(null);
+			const isAdding = isAddingServer || isAddingToExisting;
+			setStatus(isAdding ? 'Adding user...' : 'Signing in...');
+
+			try {
+				const result = await login(jellyfinApi.getServerUrl(), user.Name, '', {
+					serverName: serverInfo?.ServerName,
+					isAddingNewServer: isAdding,
+					switchToNewUser: true
+				});
+
+				if (isAdding) {
+					completeAddServerFlow?.();
+					onServerAdded?.(result);
+				} else {
+					onLoggedIn?.();
+				}
+			} catch {
+				setPassword('');
+				setStep('password');
+				setStatus(null);
+				setTimeout(() => Spotlight.focus('[data-spotlight-id="password-input"]'), 100);
+			} finally {
+				setIsConnecting(false);
+			}
+			return;
+		}
+
 		setSelectedUser(user);
 		setUsername(user.Name);
 		setPassword('');
 		setStep('password');
 		setTimeout(() => Spotlight.focus('[data-spotlight-id="password-input"]'), 100);
-	}, []);
+	}, [login, onLoggedIn, isAddingServer, isAddingToExisting, serverInfo, completeAddServerFlow, onServerAdded]);
 
 	const handleLogin = useCallback(async () => {
 		if (!username) return;
