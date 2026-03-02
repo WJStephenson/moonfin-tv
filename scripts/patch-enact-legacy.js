@@ -390,12 +390,22 @@ if (fs.existsSync(bufferPath)) {
 		bufModified = true;
 	}
 
+	// Default parameters (offset = 0) cause parse errors on Chrome <49 (Tizen 3)
+	if (/function\s+writeBig\w+\s*\(value,\s*offset\s*=\s*0\)/.test(bufSrc)) {
+		bufSrc = bufSrc.replace(/function\s+(writeBig\w+)\s*\(value,\s*offset\s*=\s*0\)/g,
+			'function $1(value, offset)');
+		console.log('  [OK]   Removed default parameter syntax from BigInt write methods');
+		bufModified = true;
+	} else if (!bufSrc.includes('offset = 0')) {
+		console.log('  [SKIP] Default parameters — already patched');
+	}
+
 	if (bufModified) {
 		fs.writeFileSync(bufferPath, bufSrc, 'utf8');
 		patchCount++;
 		console.log('  [SAVE] @enact/cli/node_modules/buffer/index.js');
 	} else {
-		console.log('  [SKIP] No ** operators found — already patched');
+		console.log('  [SKIP] No ** operators or default params found — already patched');
 	}
 } else {
 	console.warn('  [SKIP] @enact/cli/node_modules/buffer/index.js — file not found');

@@ -259,43 +259,36 @@ async function main() {
 </script>
 <script>
 // XHR mock — intercepts ilib/locale XHR requests that fail on file:// protocol.
-// Handles both sync and async XHR (ilib may use sync). Does not call origOpen
-// on mocked URLs to avoid WebKit SecurityError.
+// Patches prototype directly; uses WeakMap to track mocked instances.
 (function() {
-	var OrigXHR = window.XMLHttpRequest;
-	window.XMLHttpRequest = function() {
-		var xhr = new OrigXHR();
-		var origOpen = xhr.open;
-		var isAsync = true;
-		xhr.open = function(method, url) {
-			if (url && (url.indexOf('file://') === 0 || url.indexOf('ilib') !== -1 || url.indexOf('locale') !== -1)) {
-				this._mockIlib = true;
-				this._url = url;
-				isAsync = arguments.length < 3 || !!arguments[2];
-				return;
-			}
-			isAsync = arguments.length < 3 || !!arguments[2];
-			return origOpen.apply(this, arguments);
-		};
-		var origSend = xhr.send;
-		xhr.send = function() {
-			if (this._mockIlib) {
-				var self = this;
-				var fire = function() {
-					try { Object.defineProperty(self, 'readyState', {value: 4, configurable: true}); } catch(e) {}
-					try { Object.defineProperty(self, 'status',     {value: 404, configurable: true}); } catch(e) {}
-					try { Object.defineProperty(self, 'statusText', {value: 'Not Found', configurable: true}); } catch(e) {}
-					try { Object.defineProperty(self, 'responseText', {value: '{}', configurable: true}); } catch(e) {}
-					try { Object.defineProperty(self, 'response',   {value: '{}', configurable: true}); } catch(e) {}
-					try { if (self.onreadystatechange) self.onreadystatechange(); } catch(e) {}
-					try { if (self.onload) self.onload(); } catch(e) {}
-				};
-				if (isAsync) { setTimeout(fire, 0); } else { fire(); }
-				return;
-			}
-			return origSend.apply(this, arguments);
-		};
-		return xhr;
+	var OrigOpen = XMLHttpRequest.prototype.open;
+	var OrigSend = XMLHttpRequest.prototype.send;
+	var mocked = new WeakMap();
+	XMLHttpRequest.prototype.open = function(method, url) {
+		if (url && (url.indexOf('file://') === 0 || url.indexOf('ilib') !== -1 || url.indexOf('locale') !== -1 || url.indexOf('/resources/') !== -1)) {
+			mocked.set(this, arguments.length < 3 || !!arguments[2]);
+			return;
+		}
+		return OrigOpen.apply(this, arguments);
+	};
+	XMLHttpRequest.prototype.send = function() {
+		if (mocked.has(this)) {
+			var isAsync = mocked.get(this);
+			mocked.delete(this);
+			var self = this;
+			var fire = function() {
+				try { Object.defineProperty(self, 'readyState', {value: 4, configurable: true}); } catch(e) {}
+				try { Object.defineProperty(self, 'status',     {value: 404, configurable: true}); } catch(e) {}
+				try { Object.defineProperty(self, 'statusText', {value: 'Not Found', configurable: true}); } catch(e) {}
+				try { Object.defineProperty(self, 'responseText', {value: '{}', configurable: true}); } catch(e) {}
+				try { Object.defineProperty(self, 'response',   {value: '{}', configurable: true}); } catch(e) {}
+				try { if (self.onreadystatechange) self.onreadystatechange(); } catch(e) {}
+				try { if (self.onload) self.onload(); } catch(e) {}
+			};
+			if (isAsync) { setTimeout(fire, 0); } else { fire(); }
+			return;
+		}
+		return OrigSend.apply(this, arguments);
 	};
 })();
 </script>
