@@ -851,7 +851,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	// Handle playback health issues — if the health monitor detects stalled
 	// playback (no progress for extended period), fall back to transcoding.
 	const handleUnhealthy = useCallback(async () => {
-		if (Date.now() - lastSeekTimeRef.current < 15000) {
+		if (Date.now() - lastSeekTimeRef.current < 15000 || videoRef.current?.paused) {
 			if (healthMonitorRef.current) healthMonitorRef.current.reset();
 			return;
 		}
