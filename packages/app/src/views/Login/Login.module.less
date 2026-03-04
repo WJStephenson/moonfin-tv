@@ -1,8 +1,8 @@
 @accent: #00a4dc;
 @accentHover: #00b4ec;
-@bg1: #0a0a0a;
-@bg2: #1a1a2e;
-@bg3: #16213e;
+@bg1: #1a1a3a;
+@bg2: #2a2a5e;
+@bg3: #26316e;
 
 .page {
 	position: fixed;
@@ -15,6 +15,13 @@
 	align-items: center;
 	justify-content: center;
 	overflow-y: auto;
+
+	// Legacy: WebKit 538.1 breaks flex centering with overflow-y
+	:global(.legacy) & {
+		display: block;
+		text-align: center;
+		padding: 20px 0;
+	}
 }
 
 .container {
@@ -22,10 +29,20 @@
 	max-width: 800px;
 	padding: 40px;
 	text-align: center;
+
+	:global(.legacy) & {
+		display: inline-block;
+		padding: 20px 40px;
+		vertical-align: top;
+	}
 }
 
 .logoSection {
 	margin-bottom: 40px;
+
+	:global(.legacy) & {
+		margin-bottom: 20px;
+	}
 }
 
 .logo {
@@ -33,6 +50,10 @@
 	width: 100%;
 	height: auto;
 	object-fit: contain;
+
+	:global(.legacy) & {
+		max-width: 280px;
+	}
 }
 
 .contentWrapper {
@@ -41,6 +62,10 @@
 	border-radius: 20px;
 	padding: 50px 40px;
 	border: 3px solid rgba(255, 255, 255, 0.1);
+
+	:global(.legacy) & {
+		padding: 20px 30px;
+	}
 }
 
 .section {

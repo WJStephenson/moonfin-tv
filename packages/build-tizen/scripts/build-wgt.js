@@ -229,10 +229,8 @@ async function main() {
 	if (fs.existsSync(indexPath)) {
 		let html = fs.readFileSync(indexPath, 'utf8');
 		
-		// Pre-boot patches injected before main.js.
-		// Order: globalThis → error overlay → XHR mock
 		const preBootPatches = `<script>
-// globalThis polyfill (needed on Tizen 2.4–5.5, webOS 3–5)
+// globalThis polyfill
 (function() {
 	if (typeof globalThis === 'undefined') {
 		if (typeof self !== 'undefined') self.globalThis = self;
@@ -241,43 +239,22 @@ async function main() {
 })();
 </script>
 <script>
-// Boot error overlay — shows JS errors on-screen when no debug console is available
-(function() {
-	var shown = false;
-	function showError(msg) {
-		if (shown) return;
-		shown = true;
-		var el = document.createElement('div');
-		el.style.cssText = 'position:fixed;top:0;right:0;bottom:0;left:0;z-index:999999;background:#111;color:#f44;'
-			+ 'font:16px/1.5 monospace;padding:40px;overflow:auto;white-space:pre-wrap;';
-		el.textContent = 'Moonfin boot error — please report this:\\n\\n' + msg;
-		document.body ? document.body.appendChild(el) : document.addEventListener('DOMContentLoaded', function() { document.body.appendChild(el); });
-	}
-	window.addEventListener('error', function(e) { showError(e.message + '\\n' + (e.filename || '') + ':' + (e.lineno || '')); });
-	window.addEventListener('unhandledrejection', function(e) { showError('Unhandled promise rejection:\\n' + (e.reason && e.reason.stack || e.reason || e)); });
-})();
-</script>
-<script>
-// On file:// protocol, intercept all non-http(s) XHR to prevent NetworkError.
-// ilib loads locale JSON via relative paths (e.g. "resources/scripts.json")
-// which resolve to file:// and throw on send(). Only http(s) requests are
-// legitimate (Jellyfin server API calls).
+// Intercept non-http(s) XHR on file:// protocol to prevent NetworkError
 (function() {
 	if (location.protocol !== 'file:') return;
 	var OrigOpen = XMLHttpRequest.prototype.open;
 	var OrigSend = XMLHttpRequest.prototype.send;
-	var mocked = new WeakMap();
 	XMLHttpRequest.prototype.open = function(method, url) {
 		if (!url || (url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0)) {
-			mocked.set(this, arguments.length < 3 || !!arguments[2]);
+			this.__xhrMocked = arguments.length < 3 || !!arguments[2];
 			return;
 		}
 		return OrigOpen.apply(this, arguments);
 	};
 	XMLHttpRequest.prototype.send = function() {
-		if (mocked.has(this)) {
-			var isAsync = mocked.get(this);
-			mocked.delete(this);
+		if (this.__xhrMocked !== undefined) {
+			var isAsync = this.__xhrMocked;
+			delete this.__xhrMocked;
 			var self = this;
 			var fire = function() {
 				try { Object.defineProperty(self, 'readyState', {value: 4, configurable: true}); } catch(e) {}
@@ -296,10 +273,27 @@ async function main() {
 })();
 </script>
 `;
-		// Insert before the main.js script tag
 		html = html.replace(/<script defer="defer" src="main\.js"><\/script>/, preBootPatches + '<script defer="defer" src="main.js"></script>');
 		fs.writeFileSync(indexPath, html);
-		success('Patched index.html (globalThis polyfill + error overlay + XHR mock)');
+		success('Patched index.html (globalThis polyfill + XHR mock)');
+	}
+
+	if (isLegacy) {
+		const cssPath = path.join(DIST, 'main.css');
+		if (fs.existsSync(cssPath)) {
+			log('Patching main.css for legacy WebKit...');
+			let css = fs.readFileSync(cssPath, 'utf8');
+			css = css.replace(/background-color:initial/g, 'background-color:rgba(0,0,0,0)');
+			css = css.replace(/background(-color)?:#000(?=[;}!])/g, 'background$1:rgba(0,0,0,0)');
+			fs.writeFileSync(cssPath, css);
+			success('Patched main.css for legacy WebKit');
+		}
+
+		const splashPath = path.join(DIST, 'splash.png');
+		if (fs.existsSync(splashPath)) {
+			fs.unlinkSync(splashPath);
+			success('Removed splash.png');
+		}
 	}
 	
 	// Step 3: Copy Tizen config files

@@ -1,6 +1,21 @@
+:global(html),
+:global(body),
+:global(#root) {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	background: #000b25;
+}
+
 .app {
 	height: 100%;
 	background: #000b25;
+}
+
+// Override Enact neutral skin (minifier converts rgba to 'initial'; fixed post-build for legacy)
+:global(.enact-fit.neutral),
+:global(.neutral) > :global(.enact-fit) {
+	background-color: rgba(0, 0, 0, 0) !important;
 }
 
 .loading {
@@ -9,7 +24,7 @@
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background: #0a0a0a;
+	background: linear-gradient(135deg, #1a1a3a 0%, #2a2a5e 50%, #26316e 100%);
 }
 
 .panelLoader {

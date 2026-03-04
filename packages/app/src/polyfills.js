@@ -83,3 +83,14 @@ if (typeof Element !== 'undefined' && !Element.prototype.closest) {
 		return null;
 	};
 }
+
+// Add 'legacy' class on Tizen 2.4 / webOS 2.x for CSS layout workarounds
+if (typeof document !== 'undefined') {
+	var ua = navigator.userAgent || '';
+	var isLegacyTizen = /Tizen [12]\./i.test(ua);
+	var chromeMatch = ua.match(/Chrome\/(\d+)/);
+	var isLegacyWebOS = (/Web0S|webOS/).test(ua) && (!chromeMatch || parseInt(chromeMatch[1], 10) < 38);
+	if (isLegacyTizen || isLegacyWebOS) {
+		document.documentElement.className = (document.documentElement.className ? document.documentElement.className + ' ' : '') + 'legacy';
+	}
+}
