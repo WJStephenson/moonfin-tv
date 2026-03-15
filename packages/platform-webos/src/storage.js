@@ -68,6 +68,11 @@ const ls2WithTimeout = (LS2, options, timeoutMs) => {
 		};
 		const timer = setTimeout(() => {
 			console.warn('[storage] LS2 timeout (' + timeoutMs + 'ms): ' + options.method);
+			if (storageInitialized && !useLocalStorage) {
+				console.warn('[storage] Switching to localStorage for remaining session');
+				useLocalStorage = true;
+				dbServiceUri = null;
+			}
 			settle(options.fallback);
 		}, timeoutMs);
 		try {
@@ -122,6 +127,23 @@ export const initStorage = async () => {
 
 		if (ok) {
 			dbServiceUri = DB_SERVICES[i];
+
+			const canQuery = await ls2WithTimeout(LS2, {
+				service: DB_SERVICES[i],
+				method: 'find',
+				parameters: {query: {from: DB_KIND, limit: 1}},
+				onSuccess: () => true,
+				fallback: false
+			}, 3000);
+
+			if (!canQuery) {
+				console.warn('[storage] DB8 find probe timed out, using localStorage');
+				dbServiceUri = null;
+				useLocalStorage = true;
+				storageInitialized = true;
+				return true;
+			}
+
 			storageInitialized = true;
 			if (initResolve) initResolve();
 			return true;
