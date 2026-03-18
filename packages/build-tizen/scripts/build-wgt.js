@@ -28,7 +28,7 @@ const shouldInstall = args.includes('--install');
 const isDev = args.includes('--dev');
 const isLegacy = args.includes('--legacy');
 
-// ── Optional version bump: npm run build:tizen -- 2.2.0 ──
+// ── Optional version bump: npm run build:tizen -- 2.3.0 ──
 const versionArg = args.find(a => /^\d+\.\d+\.\d+$/.test(a));
 if (versionArg) {
 	console.log(`\n Bumping Tizen version to ${versionArg}...\n`);

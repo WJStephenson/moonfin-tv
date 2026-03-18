@@ -172,8 +172,8 @@ npm run dev:webos
 ```
 
 Build outputs:
-- Tizen: `Moonfin-v2.2.0.wgt` in the project root
-- webOS: `org.moonfin.webos_2.2.0_all.ipk` in `packages/build-webos/build/`
+- Tizen: `Moonfin-v2.3.0.wgt` in the project root
+- webOS: `org.moonfin.webos_2.3.0_all.ipk` in `packages/build-webos/build/`
 
 ---
 
