@@ -165,7 +165,8 @@ const Search = ({onSelectItem, onSelectPerson}) => {
 	}, [api, jellyseerrEnabled, jellyseerrApi, unifiedMode]);
 
 	const handleInputChange = useCallback((e) => {
-		const value = e.target.value;
+		let value = e.target.value;
+		try { value = decodeURIComponent(escape(value)); } catch (_) { /* ignore */ }
 		setQuery(value);
 
 		if (debounceRef.current) {
