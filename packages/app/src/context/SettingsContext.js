@@ -50,10 +50,16 @@ const defaultSettings = {
 	showFeaturedBar: true,
 	featuredTrailerPreview: true,
 	featuredTrailerMuted: false,
+	mediaBarSourceType: 'library',
+	mediaBarLibraryIds: [],
+	mediaBarCollectionIds: [],
 	unifiedLibraryMode: false,
 	useMoonfinPlugin: false,
 	mdblistEnabled: true,
+	mdblistRatingSources: ['imdb', 'tmdb', 'tomatoes', 'metacritic'],
 	tmdbEpisodeRatingsEnabled: true,
+	showClock: true,
+	clockDisplay: '24-hour',
 	autoLogin: true,
 	navbarPosition: 'top',
 	screensaverEnabled: true,
@@ -95,20 +101,75 @@ const SERVER_TO_LOCAL = {
 	seasonalSurprise: 'seasonalTheme',
 	mediaBarOverlayColor: 'uiColor',
 	mediaBarOpacity: 'uiOpacity',
+	detailsScreenBlur: 'backdropBlurDetail',
+	browsingBlur: 'backdropBlurHome',
+	use24HourClock: 'clockDisplay',
+	homeRowOrder: 'homeRows',
 };
 const LOCAL_TO_SERVER = Object.fromEntries(
 	Object.entries(SERVER_TO_LOCAL).map(([s, l]) => [l, s])
 );
 
+const TV_TO_SERVER_ROW = {'latest-media': 'latestmedia', 'library-tiles': 'smalllibrarytiles'};
+const SERVER_TO_TV_ROW = {'latestmedia': 'latest-media', 'smalllibrarytiles': 'library-tiles'};
+
+const normalizeGuid = (id) => {
+	if (!id || typeof id !== 'string') return id;
+	const raw = id.replace(/-/g, '');
+	if (raw.length !== 32) return id;
+	return `${raw.slice(0,8)}-${raw.slice(8,12)}-${raw.slice(12,16)}-${raw.slice(16,20)}-${raw.slice(20)}`;
+};
+const normalizeGuidArray = (arr) => Array.isArray(arr) ? arr.map(normalizeGuid) : arr;
+
+const VALUE_CONVERSIONS = {
+	clockDisplay: {
+		toServer: v => v === '24-hour',
+		fromServer: v => v ? '24-hour' : '12-hour'
+	},
+	mediaBarLibraryIds: {
+		fromServer: normalizeGuidArray
+	},
+	mediaBarCollectionIds: {
+		fromServer: normalizeGuidArray
+	},
+	homeRows: {
+		toServer: rows => {
+			if (!Array.isArray(rows)) return undefined;
+			return [...rows]
+				.sort((a, b) => a.order - b.order)
+				.filter(r => r.enabled)
+				.map(r => TV_TO_SERVER_ROW[r.id] || r.id);
+		},
+		fromServer: serverIds => {
+			if (!Array.isArray(serverIds)) return undefined;
+			const rows = [];
+			serverIds.forEach((sid, i) => {
+				const tvId = SERVER_TO_TV_ROW[sid] || sid;
+				const def = DEFAULT_HOME_ROWS.find(r => r.id === tvId);
+				if (def) rows.push({...def, enabled: true, order: i});
+			});
+			DEFAULT_HOME_ROWS.forEach(def => {
+				if (!rows.find(r => r.id === def.id)) {
+					rows.push({...def, enabled: false, order: rows.length});
+				}
+			});
+			return rows;
+		}
+	}
+};
+
 const SYNCABLE_KEYS = [
 	'showShuffleButton', 'shuffleContentType', 'showGenresButton',
 	'showFavoritesButton', 'showLibrariesInToolbar', 'mergeContinueWatchingNextUp',
-	'mdblistEnabled', 'tmdbEpisodeRatingsEnabled', 'navbarPosition',
-	'showFeaturedBar', 'featuredContentType', 'featuredItemCount',
+	'mdblistEnabled', 'mdblistRatingSources', 'tmdbEpisodeRatingsEnabled',
+	'navbarPosition', 'showFeaturedBar', 'featuredContentType', 'featuredItemCount',
 	'featuredTrailerPreview', 'unifiedLibraryMode', 'seasonalTheme',
 	'uiColor', 'uiOpacity', 'focusColor', 'showRatingLabels',
 	'themeMusicEnabled', 'themeMusicVolume', 'themeMusicOnHomeRows',
-	'homeRowsImageType',
+	'homeRowsImageType', 'showClock', 'clockDisplay',
+	'backdropBlurHome', 'backdropBlurDetail',
+	'mediaBarSourceType', 'mediaBarLibraryIds', 'mediaBarCollectionIds',
+	'homeRows',
 ];
 
 const profileToLocal = (serverProfile) => {
@@ -118,7 +179,8 @@ const profileToLocal = (serverProfile) => {
 		if (value === null || value === undefined) continue;
 		const localKey = SERVER_TO_LOCAL[key] || key;
 		if (SYNCABLE_KEYS.includes(localKey)) {
-			local[localKey] = value;
+			const conv = VALUE_CONVERSIONS[localKey];
+			local[localKey] = conv?.fromServer ? conv.fromServer(value) : value;
 		}
 	}
 	return local;
@@ -130,7 +192,8 @@ const localToProfile = (localSettings) => {
 		const value = localSettings[key];
 		if (value === undefined) continue;
 		const serverKey = LOCAL_TO_SERVER[key] || key;
-		profile[serverKey] = value;
+		const conv = VALUE_CONVERSIONS[key];
+		profile[serverKey] = conv?.toServer ? conv.toServer(value) : value;
 	}
 	return profile;
 };
@@ -151,47 +214,6 @@ const resolveFromEnvelope = (envelope, adminDefaults) => {
 		}
 	}
 	return resolved;
-};
-
-const deepEqual = (a, b) => {
-	if (a === b) return true;
-	if (a == null || b == null) return a === b;
-	if (Array.isArray(a) && Array.isArray(b)) {
-		if (a.length !== b.length) return false;
-		return a.every((v, i) => deepEqual(v, b[i]));
-	}
-	if (typeof a === 'object' && typeof b === 'object') {
-		const ka = Object.keys(a), kb = Object.keys(b);
-		if (ka.length !== kb.length) return false;
-		return ka.every(k => deepEqual(a[k], b[k]));
-	}
-	return false;
-};
-
-const threeWayMerge = (local, server, snapshot) => {
-	const merged = {};
-	for (const key of SYNCABLE_KEYS) {
-		const localVal = local[key];
-		const serverVal = server[key];
-		const snapVal = snapshot[key];
-
-		if (!deepEqual(serverVal, snapVal) && deepEqual(localVal, snapVal) && serverVal !== undefined) {
-			merged[key] = serverVal;
-		} else if (localVal !== undefined) {
-			merged[key] = localVal;
-		} else if (serverVal !== undefined) {
-			merged[key] = serverVal;
-		}
-	}
-	return merged;
-};
-
-const pickSyncable = (source) => {
-	const result = {};
-	for (const key of SYNCABLE_KEYS) {
-		if (source[key] !== undefined) result[key] = source[key];
-	}
-	return result;
 };
 
 const pushTvProfile = (updated, credsRef) => {
@@ -267,72 +289,26 @@ export function SettingsProvider({children}) {
 			} catch (e) { /* non-critical */ }
 
 			const serverData = await getMoonfinSettings(serverUrl, token);
+			if (!serverData) return;
 
-			if (!serverData) {
-				console.log('[Settings] No server settings, pushing local TV profile');
-				await saveMoonfinProfile('tv', localToProfile(settings), serverUrl, token).catch(() => {});
-				await saveToStorage('sync_snapshot', pickSyncable(settings));
-				return;
-			}
+			const resolved = resolveFromEnvelope(serverData, adminDefaults);
 
-			const isV2 = serverData.schemaVersion === 2 || serverData.global || serverData.tv;
-			let resolvedServer;
+			const hasServerValues = SYNCABLE_KEYS.some(key => resolved[key] !== undefined);
+			if (!hasServerValues) return;
 
-			if (isV2) {
-				resolvedServer = resolveFromEnvelope(serverData, adminDefaults);
-				console.log('[Settings] Resolved v2 envelope (tv → global → admin)');
-			} else {
-				resolvedServer = {};
-				for (const [key, value] of Object.entries(serverData)) {
-					if (value === null || value === undefined) continue;
-					const k = key.charAt(0).toLowerCase() + key.slice(1);
-					const localKey = SERVER_TO_LOCAL[k] || k;
-					if (SYNCABLE_KEYS.includes(localKey)) {
-						resolvedServer[localKey] = value;
-					}
+			setSettings(prev => {
+				const updated = {...prev};
+				for (const key of SYNCABLE_KEYS) {
+					if (resolved[key] !== undefined) updated[key] = resolved[key];
 				}
-				console.log('[Settings] Parsed v1 flat settings');
-			}
-
-			const snapshot = await getFromStorage('sync_snapshot') || {};
-			const localSyncable = pickSyncable(settings);
-
-			let merged;
-			if (Object.keys(snapshot).length > 0) {
-				merged = threeWayMerge(localSyncable, resolvedServer, snapshot);
-				console.log('[Settings] Three-way merged TV settings');
-			} else {
-				merged = {...resolvedServer, ...localSyncable};
-				console.log('[Settings] First sync — local wins');
-			}
-
-			const changed = SYNCABLE_KEYS.some(key =>
-				merged[key] !== undefined && !deepEqual(merged[key], settings[key])
-			);
-
-			if (changed) {
-				setSettings(prev => {
-					const updated = {...prev};
-					for (const key of SYNCABLE_KEYS) {
-						if (merged[key] !== undefined) updated[key] = merged[key];
-					}
-					saveToStorage('settings', updated);
-					return updated;
-				});
-				console.log('[Settings] Applied synced settings');
-			} else {
-				console.log('[Settings] Server settings match local');
-			}
-
-			await saveMoonfinProfile('tv', localToProfile(merged), serverUrl, token).catch(e =>
-				console.warn('[Settings] Failed to push TV profile:', e.message)
-			);
-			await saveToStorage('sync_snapshot', pickSyncable(merged));
+				saveToStorage('settings', updated);
+				return updated;
+			});
 
 		} catch (e) {
 			console.warn('[Settings] Server sync failed:', e.message);
 		}
-	}, [settings]);
+	}, []);
 
 	return (
 		<SettingsContext.Provider value={{

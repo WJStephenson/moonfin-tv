@@ -232,7 +232,7 @@ export const api = {
 	getRandomItem: (includeTypes = 'Movie,Series') =>
 		request(`/Items?UserId=${currentUser}&IncludeItemTypes=${includeTypes}&Recursive=true&SortBy=Random&Limit=1&Fields=PrimaryImageAspectRatio,Overview&ExcludeItemTypes=BoxSet`),
 
-	getRandomItems: (contentType = 'both', limit = 10) => {
+	getRandomItems: (contentType = 'both', limit = 10, parentId = null) => {
 		let includeTypes;
 		switch (contentType) {
 			case 'movies':
@@ -244,8 +244,12 @@ export const api = {
 			default:
 				includeTypes = 'Movie,Series';
 		}
-		return request(`/Users/${currentUser}/Items?IncludeItemTypes=${includeTypes}&Recursive=true&SortBy=Random&Limit=${limit}&Fields=PrimaryImageAspectRatio,Overview,Genres,ProviderIds,RemoteTrailers&HasBackdrop=true&ExcludeItemTypes=BoxSet`);
+		const parentParam = parentId ? `&ParentId=${parentId}` : '';
+		return request(`/Users/${currentUser}/Items?IncludeItemTypes=${includeTypes}&Recursive=true&SortBy=Random&Limit=${limit}&Fields=PrimaryImageAspectRatio,Overview,Genres,ProviderIds,RemoteTrailers&HasBackdrop=true&ExcludeItemTypes=BoxSet${parentParam}`);
 	},
+
+	getCollectionItems: (collectionId, limit = 50) =>
+		request(`/Users/${currentUser}/Items?ParentId=${collectionId}&Limit=${limit}&Recursive=true&Fields=PrimaryImageAspectRatio,Overview,Genres,ProviderIds,RemoteTrailers&HasBackdrop=true`),
 
 	// Get all movies and series for genres page
 	getAllItems: (limit = 10000) =>

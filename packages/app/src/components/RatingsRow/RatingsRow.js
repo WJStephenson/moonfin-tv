@@ -1,4 +1,4 @@
-import {useState, useEffect, useRef} from 'react';
+import {useState, useEffect, useRef, useMemo} from 'react';
 import {fetchRatings, buildDisplayRatings, getContentType, getTmdbId} from '../../services/mdblistApi';
 import {useSettings} from '../../context/SettingsContext';
 import {getRtFallbackIcon} from '../icons/rtIcons';
@@ -7,7 +7,8 @@ import css from './RatingsRow.module.less';
 const RatingsRow = ({item, serverUrl, compact = false, pluginEnabled = true}) => {
 	const {settings} = useSettings();
 	const showLabels = settings.showRatingLabels !== false;
-	const [displayRatings, setDisplayRatings] = useState([]);
+	const enabledSources = settings.mdblistRatingSources;
+	const [allRatings, setAllRatings] = useState([]);
 	const mountedRef = useRef(true);
 	const itemIdRef = useRef(null);
 
@@ -18,7 +19,7 @@ const RatingsRow = ({item, serverUrl, compact = false, pluginEnabled = true}) =>
 
 	useEffect(() => {
 		if (!pluginEnabled || !item || !serverUrl) {
-			setDisplayRatings([]);
+			setAllRatings([]);
 			return;
 		}
 
@@ -26,7 +27,7 @@ const RatingsRow = ({item, serverUrl, compact = false, pluginEnabled = true}) =>
 		const tmdbId = getTmdbId(item);
 
 		if (!contentType || !tmdbId) {
-			setDisplayRatings([]);
+			setAllRatings([]);
 			return;
 		}
 
@@ -35,11 +36,17 @@ const RatingsRow = ({item, serverUrl, compact = false, pluginEnabled = true}) =>
 
 		fetchRatings(serverUrl, item).then(ratings => {
 			if (mountedRef.current && itemIdRef.current === currentItemId) {
-				const display = buildDisplayRatings(ratings, serverUrl);
-				setDisplayRatings(display);
+				setAllRatings(buildDisplayRatings(ratings, serverUrl));
 			}
 		});
 	}, [item, serverUrl, pluginEnabled]);
+
+	const displayRatings = useMemo(() => {
+		if (!Array.isArray(enabledSources)) return allRatings;
+		return allRatings
+			.filter(r => enabledSources.includes(r.source))
+			.sort((a, b) => enabledSources.indexOf(a.source) - enabledSources.indexOf(b.source));
+	}, [allRatings, enabledSources]);
 
 	const communityRating = item && item.CommunityRating ? item.CommunityRating.toFixed(1) : null;
 	const hasContent = communityRating || displayRatings.length > 0 || (!pluginEnabled && item && item.CriticRating);

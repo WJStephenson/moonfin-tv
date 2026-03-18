@@ -86,6 +86,11 @@ const FEATURED_ITEM_COUNT_OPTIONS = [
 	{ value: 15, label: '15 items' }
 ];
 
+const MEDIA_BAR_SOURCE_OPTIONS = [
+	{ value: 'library', label: 'Libraries' },
+	{ value: 'collection', label: 'Collections' }
+];
+
 const BLUR_OPTIONS = [
 	{ value: 0, label: 'Off' },
 	{ value: 10, label: 'Light' },
@@ -799,6 +804,7 @@ const Settings = ({ onBack, onLibrariesChanged }) => {
 			{renderToggleItem('showFeaturedBar', 'Show Featured Bar', 'Display the featured media bar on home screen')}
 			{renderOptionItem('featuredContentType', 'Content Type', CONTENT_TYPE_OPTIONS, 'Movies & TV Shows')}
 			{renderOptionItem('featuredItemCount', 'Item Count', FEATURED_ITEM_COUNT_OPTIONS, '10 items')}
+			{renderOptionItem('mediaBarSourceType', 'Source', MEDIA_BAR_SOURCE_OPTIONS, 'Libraries')}
 			{renderToggleItem(
 				'featuredTrailerPreview',
 				'Trailer Preview',

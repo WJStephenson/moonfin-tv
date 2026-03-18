@@ -132,13 +132,39 @@ const Browse = ({
 		return item?._serverUrl || serverUrl;
 	}, [serverUrl]);
 
+	const settingsRef = useRef(settings);
+	settingsRef.current = settings;
+
 	const fetchFreshFeaturedItems = useCallback(async (fallbackItems = null) => {
 		try {
 			let items = [];
-			if (unifiedMode) {
-				items = await connectionPool.getRandomItemsFromAllServers(settings.featuredContentType, settings.featuredItemCount);
+			const s = settingsRef.current;
+			const sourceType = s.mediaBarSourceType || 'library';
+			const libraryIds = s.mediaBarLibraryIds || [];
+			const collectionIds = s.mediaBarCollectionIds || [];
+
+			if (sourceType === 'collection' && collectionIds.length > 0) {
+				const results = await Promise.all(
+					collectionIds.map(cid => api.getCollectionItems(cid, 50).catch(() => null))
+				);
+				const allItems = [];
+				results.forEach(r => { if (r?.Items) allItems.push(...r.Items); });
+				items = allItems
+					.filter(item => item.Type !== 'BoxSet' && item.BackdropImageTags?.length)
+					.sort(() => Math.random() - 0.5)
+					.slice(0, s.featuredItemCount);
+			} else if (unifiedMode) {
+				items = await connectionPool.getRandomItemsFromAllServers(s.featuredContentType, s.featuredItemCount);
+			} else if (libraryIds.length > 0) {
+				const perLib = Math.ceil((s.featuredItemCount * 2) / libraryIds.length);
+				const results = await Promise.all(
+					libraryIds.map(lid => api.getRandomItems(s.featuredContentType, perLib, lid).catch(() => null))
+				);
+				const allItems = [];
+				results.forEach(r => { if (r?.Items) allItems.push(...r.Items); });
+				items = allItems.sort(() => Math.random() - 0.5).slice(0, s.featuredItemCount);
 			} else {
-				const randomItems = await api.getRandomItems(settings.featuredContentType, settings.featuredItemCount);
+				const randomItems = await api.getRandomItems(s.featuredContentType, s.featuredItemCount);
 				items = randomItems?.Items || [];
 			}
 
@@ -165,7 +191,7 @@ const Browse = ({
 			}
 		}
 		return null;
-	}, [api, settings.featuredContentType, settings.featuredItemCount, unifiedMode, getItemServerUrl]);
+	}, [api, unifiedMode, getItemServerUrl]);
 
 	const getUiColorRgb = useCallback((colorKey) => {
 		const colorMap = {
