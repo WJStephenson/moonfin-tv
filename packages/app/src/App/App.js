@@ -6,7 +6,7 @@ import {AuthProvider, useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import * as playback from '../services/playback';
 import * as connectionPool from '../services/connectionPool';
-import {isBackKey, KEYS} from '../utils/keys';
+import {isBackKey, isYellowKey, KEYS} from '../utils/keys';
 import {isTizen, isWebOS} from '../platform';
 import {initVideo, cleanupVideoElement, setupVisibilityHandler, setupPlatformLifecycle} from '../services/video';
 import {SettingsProvider} from '../context/SettingsContext';
@@ -355,6 +355,21 @@ const AppContent = (props) => {
 			if (e.keyCode === KEYS.BACKSPACE && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
 				return;
 			}
+			if (
+				isWebOS() &&
+				isYellowKey(e) &&
+				isAuthenticated &&
+				!showExitDialog &&
+				!showAccountModal &&
+				panelIndex !== PANELS.LOGIN &&
+				panelIndex !== PANELS.ADD_SERVER &&
+				panelIndex !== PANELS.ADD_USER
+			) {
+				e.preventDefault();
+				e.stopPropagation();
+				setShowAccountModal(true);
+				return;
+			}
 			if (isBackKey(e)) {
 				e.preventDefault();
 				e.stopPropagation();
@@ -391,7 +406,7 @@ const AppContent = (props) => {
 
 		window.addEventListener('keydown', handleKeyDown, true);
 		return () => window.removeEventListener('keydown', handleKeyDown, true);
-	}, [panelIndex, handleBack, performAppCleanup, showAccountModal, showExitDialog]);
+	}, [panelIndex, handleBack, performAppCleanup, showAccountModal, showExitDialog, isAuthenticated]);
 
 	const handleLoggedIn = useCallback(() => {
 		setPanelHistory([]);
@@ -916,6 +931,7 @@ const AppContent = (props) => {
 				onLogout={handleSwitchUser}
 				onAddServer={handleAddServer}
 				onAddUser={handleAddUser}
+				onAccountSwitched={handleHome}
 			/>
 			<ExitDialog
 				open={showExitDialog}

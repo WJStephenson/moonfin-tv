@@ -78,7 +78,7 @@ const ENACT_ALIAS = JSON.stringify({
 });
 
 try {
-	console.log(' Building Moonfin for webOS...\n');
+	console.log(' Building moonfin+ for webOS...\n');
 
 	// Apply Enact compatibility patches
 	console.log('Applying Enact compatibility patches...');

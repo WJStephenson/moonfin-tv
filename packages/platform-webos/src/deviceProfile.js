@@ -737,7 +737,7 @@ export const getJellyfinDeviceProfile = async () => {
 	});
 
 	return {
-		Name: `Moonfin webOS ${caps.webosVersion}`,
+		Name: `moonfin+ webOS ${caps.webosVersion}`,
 		MaxStreamingBitrate: maxStreamingBitrate,
 		MaxStaticBitrate: maxStreamingBitrate,
 		MaxStaticMusicBitrate: 40000000,
@@ -793,10 +793,10 @@ export const getH264FallbackProfile = async () => {
 };
 
 export const getDeviceId = () => {
-	let deviceId = localStorage.getItem('moonfin_device_id');
+	let deviceId = localStorage.getItem('moonfinplus_device_id');
 	if (!deviceId) {
-		deviceId = 'moonfin_' + Date.now().toString(36) + Math.random().toString(36).substring(2);
-		localStorage.setItem('moonfin_device_id', deviceId);
+		deviceId = 'moonfinplus_' + Date.now().toString(36) + Math.random().toString(36).substring(2);
+		localStorage.setItem('moonfinplus_device_id', deviceId);
 	}
 	return deviceId;
 };

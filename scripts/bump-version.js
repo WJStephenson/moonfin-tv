@@ -74,25 +74,25 @@ if (doWebos) {
 	}
 
 	// webOS manifest (version + ipkUrl + clear hash)
-	const manifestPath = path.join(ROOT, 'packages/build-webos/org.moonfin.webos.manifest.json');
+	const manifestPath = path.join(ROOT, 'packages/build-webos/org.moonfinplus.webos.manifest.json');
 	if (fs.existsSync(manifestPath)) {
 		const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 		const old = manifest.version;
 		manifest.version = newVersion;
-		manifest.ipkUrl = `org.moonfin.webos_${newVersion}_all.ipk`;
+		manifest.ipkUrl = `org.moonfinplus.webos_${newVersion}_all.ipk`;
 		if (manifest.ipkHash) manifest.ipkHash.sha256 = '';
 		fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
-		console.log(`  build-webos/org.moonfin.webos.manifest.json: ${old} → ${newVersion}`);
+		console.log(`  build-webos/org.moonfinplus.webos.manifest.json: ${old} → ${newVersion}`);
 	}
 
 	// README ipk references
 	const readmePath = path.join(ROOT, 'README.md');
 	if (fs.existsSync(readmePath)) {
 		let readme = fs.readFileSync(readmePath, 'utf8');
-		const ipkRe = /org\.moonfin\.webos_\d+\.\d+\.\d+_all\.ipk/g;
+		const ipkRe = /org\.moonfinplus\.webos_\d+\.\d+\.\d+_all\.ipk/g;
 		const count = (readme.match(ipkRe) || []).length;
 		if (count) {
-			readme = readme.replace(ipkRe, `org.moonfin.webos_${newVersion}_all.ipk`);
+			readme = readme.replace(ipkRe, `org.moonfinplus.webos_${newVersion}_all.ipk`);
 			fs.writeFileSync(readmePath, readme);
 			console.log(`  README.md: updated ${count} ipk reference(s)`);
 		}

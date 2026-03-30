@@ -29,10 +29,10 @@ export const getH264FallbackProfile = async (...args) => {
 
 export const getDeviceId = (...args) => {
 	if (!impl) {
-		const id = localStorage.getItem('moonfin_device_id');
+		const id = localStorage.getItem('moonfinplus_device_id');
 		if (id) return id;
-		const newId = 'moonfin_' + Date.now().toString(36) + Math.random().toString(36).substring(2);
-		localStorage.setItem('moonfin_device_id', newId);
+		const newId = 'moonfinplus_' + Date.now().toString(36) + Math.random().toString(36).substring(2);
+		localStorage.setItem('moonfinplus_device_id', newId);
 		return newId;
 	}
 	return impl.getDeviceId(...args);

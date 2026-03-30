@@ -41,6 +41,7 @@ const TIZEN_KEYS = {
 
 const WEBOS_KEYS = {
 	BACK: 461,
+	YELLOW: 405,
 };
 
 export const KEYS = {
@@ -57,6 +58,12 @@ export const isBackKey = (e) => {
 export const isExitKey = (e) => {
 	if (getPlatform() !== 'tizen') return false;
 	return (e.keyCode || e.which) === TIZEN_KEYS.EXIT;
+};
+
+export const isYellowKey = (e) => {
+	const code = e.keyCode || e.which;
+	if (code === TIZEN_KEYS.YELLOW) return true;
+	return e.key === 'ColorF2Yellow';
 };
 
 export const ESSENTIAL_KEY_NAMES = [

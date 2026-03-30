@@ -30,8 +30,8 @@ jobs:
         uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: moonfin_webos_ipk
-          path: packages/build-webos/build/org.moonfin.webos_*_all.ipk
+          name: moonfinplus_webos_ipk
+          path: org.moonfinplus.webos_*_all.ipk
 
   build-tizen:
     name: Build Tizen (WGT)

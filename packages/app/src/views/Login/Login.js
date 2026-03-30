@@ -424,8 +424,7 @@ const Login = ({
 		return (
 			<div className={css.page}>
 				<div className={css.loading}>
-					<div className={css.spinner} />
-					<span>Loading...</span>
+					<img src="resources/icon-130.png" alt="" className={css.splashIcon} />
 				</div>
 			</div>
 		);
@@ -435,7 +434,7 @@ const Login = ({
 		<div className={css.page}>
 			<div className={css.container}>
 				<div className={css.logoSection}>
-					<img src="resources/banner-dark.png" alt="Moonfin" className={css.logo} />
+					<img src="resources/icon-130.png" alt="" className={css.logoMark} />
 				</div>
 
 				{status && <div className={css.statusMessage}>{status}</div>}

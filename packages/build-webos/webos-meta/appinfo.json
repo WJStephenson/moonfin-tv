@@ -1,10 +1,10 @@
 {
-    "id": "org.moonfin.webos",
+    "id": "org.moonfinplus.webos",
     "version": "2.3.0",
-    "vendor": "Moonfin",
+    "vendor": "moonfin+",
     "type": "web",
     "main": "index.html",
-    "title": "Moonfin",
+    "title": "moonfin+",
     "appDescription": "Jellyfin media client for LG webOS TV",
     "icon": "icon-80.png",
     "largeIcon": "icon-130.png",

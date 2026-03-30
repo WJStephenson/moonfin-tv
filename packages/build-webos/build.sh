@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo " Building Moonfin for webOS..."
+echo " Building moonfin+ for webOS..."
 
 # Clean previous build
 echo "Cleaning previous build..."

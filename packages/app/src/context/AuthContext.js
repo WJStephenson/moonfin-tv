@@ -134,7 +134,8 @@ export const AuthProvider = ({children}) => {
 			finalServerName,
 			result.User.Id,
 			result.User.Name,
-			result.AccessToken
+			result.AccessToken,
+			{primaryImageTag: result.User.PrimaryImageTag}
 		);
 
 		// Always switch to the newly logged in user
@@ -188,7 +189,8 @@ export const AuthProvider = ({children}) => {
 			finalServerName,
 			authResult.User.Id,
 			authResult.User.Name,
-			authResult.AccessToken
+			authResult.AccessToken,
+			{primaryImageTag: authResult.User.PrimaryImageTag}
 		);
 
 		// Always switch to the newly logged in user
@@ -240,10 +242,14 @@ export const AuthProvider = ({children}) => {
 			setServerName(active.name);
 			setAccessToken(active.accessToken);
 
-			// Get fresh user info
 			try {
 				const userInfo = await jellyfinApi.api.getUserConfiguration();
 				setUser(userInfo);
+				if (userInfo?.PrimaryImageTag) {
+					await multiServerManager.updateServer(active.serverId, null, active.userId, {
+						primaryImageTag: userInfo.PrimaryImageTag
+					});
+				}
 			} catch (e) {
 				setUser({Id: active.userId, Name: active.username});
 			}

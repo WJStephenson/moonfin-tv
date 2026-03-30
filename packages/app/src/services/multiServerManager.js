@@ -49,6 +49,7 @@ export const getAllServersArray = async () => {
 						userId: userId,
 						username: user.username,
 						accessToken: user.accessToken,
+						primaryImageTag: user.primaryImageTag,
 						addedDate: server.addedDate,
 						lastConnected: user.lastConnected,
 						connected: user.connected
@@ -229,9 +230,12 @@ export const setActiveServer = async (serverId, userId) => {
  * @param {string} userId - User ID
  * @param {string} username - Username
  * @param {string} accessToken - Access token
+ * @param {Object} [options]
+ * @param {string} [options.primaryImageTag]
  * @returns {Promise<Object>} Created server/user object
  */
-export const addServer = async (serverUrl, serverName, userId, username, accessToken) => {
+export const addServer = async (serverUrl, serverName, userId, username, accessToken, options = {}) => {
+	const {primaryImageTag} = options;
 	const servers = await getAllServers();
 
 	// Check if server already exists by URL
@@ -260,14 +264,15 @@ export const addServer = async (serverUrl, serverName, userId, username, accessT
 		console.log('[MULTI-SERVER] Server already exists, adding user');
 	}
 
-	// Add user to server
+	const prevUser = servers[serverId].users[userId];
 	servers[serverId].users[userId] = {
 		userId: userId,
 		username: username,
 		accessToken: accessToken,
 		lastConnected: new Date().toISOString(),
 		connected: true,
-		addedDate: new Date().toISOString()
+		addedDate: prevUser?.addedDate || new Date().toISOString(),
+		...(primaryImageTag != null ? {primaryImageTag} : prevUser?.primaryImageTag != null ? {primaryImageTag: prevUser.primaryImageTag} : {})
 	};
 
 	await saveToStorage(SERVERS_KEY, servers);

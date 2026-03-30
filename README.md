@@ -1,4 +1,4 @@
-<h1 align="center">Moonfin for Smart-TVs</h1>
+<h1 align="center">moonfin+ for Smart-TVs</h1>
 <h3 align="center">Enhanced Jellyfin client for webOS and Tizen TVs</h3>
 
 ---
@@ -173,7 +173,9 @@ npm run dev:webos
 
 Build outputs:
 - Tizen: `Moonfin-v2.3.0.wgt` in the project root
-- webOS: `org.moonfin.webos_2.3.0_all.ipk` in `packages/build-webos/build/`
+- webOS: `org.moonfinplus.webos_2.3.0_all.ipk` in the project root (next to `package.json`)
+
+Homebrew Channel: see `packages/build-webos/HOMEBREW.md`.
 
 ---
 

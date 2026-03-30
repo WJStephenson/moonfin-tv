@@ -11,12 +11,12 @@ const loadLS2Request = async () => {
 	}
 };
 
-const DB_KIND = 'org.moonfin.webos:1';
+const DB_KIND = 'org.moonfinplus.webos:1';
 const DB_SERVICES = [
 	'luna://com.webos.service.db',
 	'luna://com.palm.db'
 ];
-const LS_PREFIX = 'moonfin_';
+const LS_PREFIX = 'moonfinplus_';
 const LS2_TIMEOUT_MS = 5000;
 
 let storageInitialized = false;
@@ -111,7 +111,7 @@ export const initStorage = async () => {
 			method: 'putKind',
 			parameters: {
 				id: DB_KIND,
-				owner: 'org.moonfin.webos',
+				owner: 'org.moonfinplus.webos',
 				indexes: [{name: 'key', props: [{name: 'key'}]}]
 			},
 			onSuccess: () => {
