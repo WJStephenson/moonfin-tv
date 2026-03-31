@@ -24,7 +24,7 @@
         "rootRequired": false,
         "ipkUrl": "https://github.com/WJStephenson/moonfin-tv/releases/download/v2.3.1/org.moonfinplus.webos_2.3.1_all.ipk",
         "ipkHash": {
-          "sha256": "1898cea61b1162547df74469dde18137fffffcee928852a75912d2adcdab94f8"
+          "sha256": "6d46e75d3edfd0af40a49cb588783955b8cb10a5af042d0dbc1c2d6174fd33a7"
         }
       }
     }

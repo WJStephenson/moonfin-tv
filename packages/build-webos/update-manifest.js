@@ -29,7 +29,7 @@ const sha256 = hashSum.digest('hex');
 console.log(`Calculated SHA256: ${sha256}`);
 
 // Read manifest file
-const manifestPath = './org.moonfinplus.webos.manifest.json';
+const manifestPath = path.join(__dirname, 'org.moonfinplus.webos.manifest.json');
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
 manifest.version = version;
