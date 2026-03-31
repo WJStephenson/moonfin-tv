@@ -57,7 +57,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	const [seekPosition, setSeekPosition] = useState(0);
 	const [mediaSourceId, setMediaSourceId] = useState(null);
 	const [hasTriedTranscode, setHasTriedTranscode] = useState(false);
-	const [focusRow, setFocusRow] = useState('top');
+	const [focusRow, setFocusRow] = useState('bottom');
 	const [isAudioMode, setIsAudioMode] = useState(false);
 
 	// Audio playlist tracking
@@ -107,6 +107,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 		isPaused, audioStreams, subtitleStreams, chapters,
 		nextEpisode, isAudioMode, hasNextTrack, hasPrevTrack
 	});
+
+	useEffect(() => {
+		setFocusRow(isAudioMode ? 'top' : 'bottom');
+	}, [isAudioMode]);
 
 	// ==============================
 	// AVPlay Time Update Polling
@@ -1035,16 +1039,20 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 		} else if (e.key === 'ArrowUp' || e.keyCode === 38) {
 			e.preventDefault();
 			executeDeferredSeek();
-			setFocusRow('top');
 			setIsSeeking(false);
-			window.requestAnimationFrame(() => Spotlight.focus('play-pause-btn'));
+			if (isAudioMode) {
+				setFocusRow('top');
+				window.requestAnimationFrame(() => Spotlight.focus('play-pause-btn'));
+			}
 		} else if (e.key === 'ArrowDown' || e.keyCode === 40) {
 			e.preventDefault();
 			executeDeferredSeek();
-			setFocusRow('bottom');
 			setIsSeeking(false);
+			if (!isAudioMode) {
+				setFocusRow('bottom');
+			}
 		}
-	}, [settings.seekStep, showControls, scheduleDeferredSeek, executeDeferredSeek]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [settings.seekStep, showControls, scheduleDeferredSeek, executeDeferredSeek, isAudioMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const handleProgressBlur = useCallback(() => {
 		executeDeferredSeek();
@@ -1219,29 +1227,36 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				return;
 			}
 
-			// Up/Down arrow navigation between rows when controls are visible
 			if (controlsVisible && !activeModal) {
-				showControls(); // Reset timer on navigation
+				showControls();
 
 				if (key === 'ArrowUp' || e.keyCode === 38) {
 					e.preventDefault();
-					setFocusRow(prev => {
-						if (prev === 'bottom') return 'progress';
-						if (prev === 'progress') {
-							window.requestAnimationFrame(() => Spotlight.focus('play-pause-btn'));
+					if (isAudioMode) {
+						setFocusRow(prev => {
+							if (prev === 'bottom') return 'progress';
+							if (prev === 'progress') {
+								window.requestAnimationFrame(() => Spotlight.focus('play-pause-btn'));
+								return 'top';
+							}
 							return 'top';
-						}
-						return 'top';
-					});
+						});
+					} else {
+						setFocusRow(prev => (prev === 'bottom' ? 'progress' : prev));
+					}
 					return;
 				}
 				if (key === 'ArrowDown' || e.keyCode === 40) {
 					e.preventDefault();
-					setFocusRow(prev => {
-						if (prev === 'top') return 'progress';
-						if (prev === 'progress') return bottomButtons.length > 0 ? 'bottom' : 'progress';
-						return 'bottom'; // Already at bottom, stay there
-					});
+					if (isAudioMode) {
+						setFocusRow(prev => {
+							if (prev === 'top') return 'progress';
+							if (prev === 'progress') return bottomButtons.length > 0 ? 'bottom' : 'progress';
+							return 'bottom';
+						});
+					} else {
+						setFocusRow(prev => (prev === 'progress' && bottomButtons.length > 0 ? 'bottom' : prev));
+					}
 					return;
 				}
 			}
@@ -1250,7 +1265,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 
 		window.addEventListener('keydown', handleKeyDown, true);
 		return () => window.removeEventListener('keydown', handleKeyDown, true);
-	}, [controlsVisible, activeModal, closeModal, hideControls, handleBack, showControls, handlePlayPause, handleForward, handleRewind, currentTime, duration, settings.seekStep, handlePopupKeyDown, bottomButtons.length, scheduleDeferredSeek, showSkipIntro, showSkipCredits, showNextEpisode]);
+	}, [controlsVisible, activeModal, closeModal, hideControls, handleBack, showControls, handlePlayPause, handleForward, handleRewind, currentTime, duration, settings.seekStep, handlePopupKeyDown, bottomButtons.length, scheduleDeferredSeek, showSkipIntro, showSkipCredits, showNextEpisode, isAudioMode]);
 
 	// Calculate progress - use seekPosition when actively seeking for smooth scrubbing
 	const displayTime = isSeeking ? (seekPosition / 10000000) : currentTime;
@@ -1264,7 +1279,9 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			if (focusRow === 'progress') {
 				Spotlight.focus('progress-bar');
 			} else if (focusRow === 'bottom') {
-				Spotlight.focus('bottom-row-default');
+				Spotlight.focus('play-pause-btn');
+			} else if (focusRow === 'top') {
+				Spotlight.focus('play-pause-btn');
 			}
 		});
 	}, [focusRow, controlsVisible]);

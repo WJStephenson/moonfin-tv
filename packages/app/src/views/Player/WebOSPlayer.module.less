@@ -304,13 +304,15 @@
 
 .controlButtonsBottom {
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: flex-start;
+	row-gap: 16px;
 
 	> * + * {
 		margin-left: 20px;
 	}
 	align-items: center;
-	margin-top: 20px;
+	margin-top: 0;
 }
 
 .controlBtn {
@@ -361,7 +363,7 @@
 
 /* Progress Container */
 .progressContainer {
-	margin-bottom: 30px;
+	margin-bottom: 24px;
 }
 
 .timeInfoTop {

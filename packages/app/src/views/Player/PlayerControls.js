@@ -32,32 +32,26 @@ export const usePlayerButtons = ({
 	nextEpisode, isAudioMode, hasNextTrack, hasPrevTrack
 }) => {
 	const topButtons = useMemo(() => {
-		const buttons = [
-			{id: 'playPause', icon: isPaused ? <IconPlay /> : <IconPause />, label: isPaused ? 'Play' : 'Pause', action: 'playPause'}
-		];
-		if (isAudioMode) {
-			buttons.unshift(
-				{id: 'previous', icon: <IconPrevious />, label: 'Previous', action: 'prevTrack', disabled: !hasPrevTrack}
-			);
-			buttons.push(
-				{id: 'next', icon: <IconNext />, label: 'Next', action: 'nextTrack', disabled: !hasNextTrack}
-			);
-		} else {
-			buttons.push(
-				{id: 'rewind', icon: <IconRewind />, label: 'Rewind', action: 'rewind'},
-				{id: 'forward', icon: <IconForward />, label: 'Forward', action: 'forward'},
-				{id: 'audio', icon: <IconAudio />, label: 'Audio', action: 'audio', disabled: audioStreams.length === 0},
-				{id: 'subtitle', icon: <IconSubtitle />, label: 'Subtitles', action: 'subtitle', disabled: subtitleStreams.length === 0}
-			);
+		if (!isAudioMode) {
+			return [];
 		}
-		return buttons;
-	}, [isPaused, audioStreams.length, subtitleStreams.length, isAudioMode, hasNextTrack, hasPrevTrack]);
+		return [
+			{id: 'previous', icon: <IconPrevious />, label: 'Previous', action: 'prevTrack', disabled: !hasPrevTrack},
+			{id: 'playPause', icon: isPaused ? <IconPlay /> : <IconPause />, label: isPaused ? 'Play' : 'Pause', action: 'playPause'},
+			{id: 'next', icon: <IconNext />, label: 'Next', action: 'nextTrack', disabled: !hasNextTrack}
+		];
+	}, [isPaused, isAudioMode, hasNextTrack, hasPrevTrack]);
 
 	const bottomButtons = useMemo(() => {
 		if (isAudioMode) {
 			return [];
 		}
 		return [
+			{id: 'rewind', icon: <IconRewind />, label: 'Rewind', action: 'rewind'},
+			{id: 'playPause', icon: isPaused ? <IconPlay /> : <IconPause />, label: isPaused ? 'Play' : 'Pause', action: 'playPause'},
+			{id: 'forward', icon: <IconForward />, label: 'Forward', action: 'forward'},
+			{id: 'audio', icon: <IconAudio />, label: 'Audio', action: 'audio', disabled: audioStreams.length === 0},
+			{id: 'subtitle', icon: <IconSubtitle />, label: 'Subtitles', action: 'subtitle', disabled: subtitleStreams.length === 0},
 			{id: 'chapters', icon: <IconChapters />, label: 'Chapters', action: 'chapter', disabled: chapters.length === 0},
 			{id: 'previous', icon: <IconPrevious />, label: 'Previous', action: 'previous', disabled: true},
 			{id: 'next', icon: <IconNext />, label: 'Next', action: 'next', disabled: !nextEpisode},
@@ -65,7 +59,7 @@ export const usePlayerButtons = ({
 			{id: 'quality', icon: <IconQuality />, label: 'Quality', action: 'quality'},
 			{id: 'info', icon: <IconInfo />, label: 'Info', action: 'info'}
 		];
-	}, [chapters.length, nextEpisode, isAudioMode]);
+	}, [isPaused, audioStreams.length, subtitleStreams.length, chapters.length, nextEpisode, isAudioMode]);
 
 	return {topButtons, bottomButtons};
 };
@@ -217,7 +211,7 @@ const PlayerControls = ({
 
 				{/* Bottom - Controls */}
 				<div className={css.controlsBottom}>
-					{/* Top Row Buttons */}
+					{isAudioMode && topButtons.length > 0 && (
 					<div className={css.controlButtons}>
 						{topButtons.map((btn) => (
 							<SpottableButton
@@ -227,13 +221,15 @@ const PlayerControls = ({
 								onClick={btn.disabled ? undefined : handleControlButtonClick}
 								aria-label={btn.label}
 								aria-disabled={btn.disabled}
-								spotlightDisabled={focusRow !== 'top'}							spotlightId={btn.id === 'playPause' ? 'play-pause-btn' : undefined}							>
+								spotlightDisabled={focusRow !== 'top'}
+								spotlightId={btn.id === 'playPause' ? 'play-pause-btn' : undefined}
+							>
 								{btn.icon}
 							</SpottableButton>
 						))}
 					</div>
+					)}
 
-					{/* Progress Bar */}
 					<div className={css.progressContainer}>
 						<div className={css.timeInfoTop}>
 							<span className={css.timeEnd}>{formatEndTime(duration - displayTime, settings.clockDisplay)}</span>
@@ -266,8 +262,7 @@ const PlayerControls = ({
 						</div>
 					</div>
 
-					{/* Bottom Row Buttons */}
-					{bottomButtons.length > 0 && (
+					{!isAudioMode && bottomButtons.length > 0 && (
 					<div className={css.controlButtonsBottom}>
 						{bottomButtons.map((btn) => (
 							<SpottableButton
@@ -278,7 +273,7 @@ const PlayerControls = ({
 								aria-label={btn.label}
 								aria-disabled={btn.disabled}
 								spotlightDisabled={focusRow !== 'bottom'}
-								spotlightId={btn.id === 'chapters' ? 'bottom-row-default' : undefined}
+								spotlightId={btn.id === 'playPause' ? 'play-pause-btn' : undefined}
 							>
 								{btn.icon}
 							</SpottableButton>

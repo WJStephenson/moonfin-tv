@@ -58,7 +58,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 	const [seekPosition, setSeekPosition] = useState(0);
 	const [mediaSourceId, setMediaSourceId] = useState(null);
 	const [hasTriedTranscode, setHasTriedTranscode] = useState(false);
-	const [focusRow, setFocusRow] = useState('top');
+	const [focusRow, setFocusRow] = useState('bottom');
 	const [isAudioMode, setIsAudioMode] = useState(false);
 	const audioPlaylistIndex = useMemo(() => {
 		if (!audioPlaylist || !item) return -1;
@@ -137,6 +137,10 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 		isPaused, audioStreams, subtitleStreams, chapters,
 		nextEpisode, isAudioMode, hasNextTrack, hasPrevTrack
 	});
+
+	useEffect(() => {
+		setFocusRow(isAudioMode ? 'top' : 'bottom');
+	}, [isAudioMode]);
 
 	useEffect(() => {
 		const init = async () => {
@@ -1431,15 +1435,19 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			seekByOffset(step, true);
 		} else if (e.key === 'ArrowUp' || e.keyCode === 38) {
 			e.preventDefault();
-			setFocusRow('top');
 			setIsSeeking(false);
-			window.requestAnimationFrame(() => Spotlight.focus('play-pause-btn'));
+			if (isAudioMode) {
+				setFocusRow('top');
+				window.requestAnimationFrame(() => Spotlight.focus('play-pause-btn'));
+			}
 		} else if (e.key === 'ArrowDown' || e.keyCode === 40) {
 			e.preventDefault();
-			setFocusRow('bottom');
 			setIsSeeking(false);
+			if (!isAudioMode) {
+				setFocusRow('bottom');
+			}
 		}
-	}, [settings.seekStep, seekByOffset, showControls]);
+	}, [settings.seekStep, seekByOffset, showControls, isAudioMode]);
 
 	const handleProgressBlur = useCallback(() => {
 		setIsSeeking(false);
@@ -1571,29 +1579,36 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 				return;
 			}
 
-			// Up/Down arrow navigation between rows when controls are visible
 			if (controlsVisible && !activeModal) {
 				if (key === 'ArrowUp' || e.keyCode === 38) {
 					e.preventDefault();
 					showControls();
-					setFocusRow(prev => {
-						if (prev === 'bottom') return 'progress';
-						if (prev === 'progress') {
-							window.requestAnimationFrame(() => Spotlight.focus('play-pause-btn'));
+					if (isAudioMode) {
+						setFocusRow(prev => {
+							if (prev === 'bottom') return 'progress';
+							if (prev === 'progress') {
+								window.requestAnimationFrame(() => Spotlight.focus('play-pause-btn'));
+								return 'top';
+							}
 							return 'top';
-						}
-						return 'top';
-					});
+						});
+					} else {
+						setFocusRow(prev => (prev === 'bottom' ? 'progress' : prev));
+					}
 					return;
 				}
 				if (key === 'ArrowDown' || e.keyCode === 40) {
 					e.preventDefault();
 					showControls();
-					setFocusRow(prev => {
-						if (prev === 'top') return 'progress';
-						if (prev === 'progress') return bottomButtons.length > 0 ? 'bottom' : 'progress';
-						return 'bottom'; // Already at bottom, stay there
-					});
+					if (isAudioMode) {
+						setFocusRow(prev => {
+							if (prev === 'top') return 'progress';
+							if (prev === 'progress') return bottomButtons.length > 0 ? 'bottom' : 'progress';
+							return 'bottom';
+						});
+					} else {
+						setFocusRow(prev => (prev === 'progress' && bottomButtons.length > 0 ? 'bottom' : prev));
+					}
 					return;
 				}
 			}
@@ -1602,7 +1617,7 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 
 		window.addEventListener('keydown', handleKeyDown, true);
 		return () => window.removeEventListener('keydown', handleKeyDown, true);
-	}, [controlsVisible, activeModal, closeModal, hideControls, handleBack, showControls, handlePlayPause, handleForward, handleRewind, currentTime, settings.seekStep, seekByOffset, handlePopupKeyDown, bottomButtons.length, showSkipIntro, showSkipCredits, showNextEpisode]);
+	}, [controlsVisible, activeModal, closeModal, hideControls, handleBack, showControls, handlePlayPause, handleForward, handleRewind, currentTime, settings.seekStep, seekByOffset, handlePopupKeyDown, bottomButtons.length, showSkipIntro, showSkipCredits, showNextEpisode, isAudioMode]);
 
 	const displayTime = isSeeking ? (seekPosition / 10000000) : currentTime;
 	const progressPercent = duration > 0 ? (displayTime / duration) * 100 : 0;
@@ -1614,7 +1629,9 @@ const Player = ({item, resume, initialMediaSourceId, initialAudioIndex, initialS
 			if (focusRow === 'progress') {
 				Spotlight.focus('progress-bar');
 			} else if (focusRow === 'bottom') {
-				Spotlight.focus('bottom-row-default');
+				Spotlight.focus('play-pause-btn');
+			} else if (focusRow === 'top') {
+				Spotlight.focus('play-pause-btn');
 			}
 		});
 	}, [focusRow, controlsVisible]);
