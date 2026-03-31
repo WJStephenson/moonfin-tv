@@ -59,7 +59,7 @@ const copyDirRecursive = (src, dest) => {
 	}
 };
 
-// ── Optional version bump: npm run build:webos -- 2.3.0 ──
+// ── Optional version bump: npm run build:webos --  ──
 const versionArg = process.argv.find(a => /^\d+\.\d+\.\d+$/.test(a));
 if (versionArg) {
 	console.log(`\n Bumping webOS version to ${versionArg}...\n`);

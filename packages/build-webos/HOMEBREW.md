@@ -27,8 +27,8 @@ In Homebrew Channel: **Settings → Add repository** → paste that URL exactly 
 
 Install needs a **public HTTPS** link to the `.ipk`. The manifests expect:
 
-- **Tag:** `v2.3.0` (must match the version in the manifest files).
-- **Asset name:** `org.moonfinplus.webos_2.3.0_all.ipk`
+- **Tag:** `v2.3.1` (must match the version in the manifest files).
+- **Asset name:** `org.moonfinplus.webos_2.3.1_all.ipk`
 - Build: from the repo root run `npm install` and `npm run build:webos`, then upload the generated IPK from the repo root.
 
 If you change version, run `npm run build:webos` again (updates the SHA256), then update **`homebrew-repo.json`**, **`org.moonfinplus.webos.manifest.json`**, and the release tag/asset names to match.

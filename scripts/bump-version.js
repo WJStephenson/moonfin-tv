@@ -6,7 +6,7 @@
  *   node scripts/bump-version.js <webos|tizen|all> <version>
  *
  * Examples:
- *   node scripts/bump-version.js webos 2.3.0
+ *   node scripts/bump-version.js webos 2.3.1
  *   node scripts/bump-version.js tizen 2.1.1
  *   node scripts/bump-version.js all 3.0.0
  */

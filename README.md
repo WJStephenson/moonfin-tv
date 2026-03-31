@@ -172,8 +172,8 @@ npm run dev:webos
 ```
 
 Build outputs:
-- Tizen: `Moonfin-v2.3.0.wgt` in the project root
-- webOS: `org.moonfinplus.webos_2.3.0_all.ipk` in the project root (next to `package.json`)
+- Tizen: `Moonfin-v2.3.1.wgt` in the project root
+- webOS: `org.moonfinplus.webos_2.3.1_all.ipk` in the project root (next to `package.json`)
 
 Homebrew Channel: add a **repository** URL that returns catalogue JSON (`paging` + `packages`), not the GitHub repo homepage. Use the raw `homebrew-repo.json` URL from `packages/build-webos/HOMEBREW.md`.
 

@@ -1,13 +1,13 @@
 {
   "id": "org.moonfinplus.webos",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "type": "web",
   "title": "moonfin+",
   "appDescription": "Enhanced Jellyfin client for LG Smart TVs (webOS 3+)",
   "iconUri": "https://raw.githubusercontent.com/WJStephenson/moonfin-tv/main/packages/build-webos/webos-meta/icon-130.png",
   "sourceUrl": "https://github.com/WJStephenson/moonfin-tv",
   "rootRequired": false,
-  "ipkUrl": "https://github.com/WJStephenson/moonfin-tv/releases/download/v2.3.0/org.moonfinplus.webos_2.3.0_all.ipk",
+  "ipkUrl": "https://github.com/WJStephenson/moonfin-tv/releases/download/v2.3.1/org.moonfinplus.webos_2.3.1_all.ipk",
   "ipkHash": {
     "sha256": "1898cea61b1162547df74469dde18137fffffcee928852a75912d2adcdab94f8"
   }
