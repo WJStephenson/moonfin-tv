@@ -1,15 +1,34 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useState, useEffect} from 'react';
 import Spottable from '@enact/spotlight/Spottable';
 import SpotlightContainerDecorator from '@enact/spotlight/SpotlightContainerDecorator';
 import Popup from '@enact/sandstone/Popup';
 import {useAuth} from '../../context/AuthContext';
+import {useSettings} from '../../context/SettingsContext';
+import * as connectionPool from '../../services/connectionPool';
 import {parseUrl} from '../../utils/urlCompat';
+import {getImageUrl, getBackdropId, getPrimaryImageId} from '../../utils/helpers';
 
 import css from './AccountModal.module.less';
 
 const SpottableButton = Spottable('button');
 const SpottableDiv = Spottable('div');
 const ProfileRow = SpotlightContainerDecorator({enterTo: 'last-focused', restrict: 'self-first'}, 'div');
+
+const getItemServerUrl = (item, fallback) => item?._serverUrl || fallback;
+
+const getBackdropUrlForItem = (item, serverUrl) => {
+	if (!item) return null;
+	const su = getItemServerUrl(item, serverUrl);
+	const bid = getBackdropId(item);
+	if (bid) {
+		return getImageUrl(su, bid, 'Backdrop', {maxWidth: 1920, quality: 85});
+	}
+	const pid = getPrimaryImageId(item);
+	if (pid) {
+		return getImageUrl(su, pid, 'Primary', {maxWidth: 1920, quality: 85});
+	}
+	return null;
+};
 
 const AccountModal = ({
 	open,
@@ -20,19 +39,56 @@ const AccountModal = ({
 	onAccountSwitched
 }) => {
 	const {
+		api,
+		serverUrl,
+		hasMultipleServers,
 		logout,
 		logoutAll,
 		servers,
 		activeServerInfo,
 		switchUser,
 		removeUser,
-		hasMultipleUsers,
 		startAddServerFlow
 	} = useAuth();
+	const {settings} = useSettings();
+	const unifiedMode = settings.unifiedLibraryMode && hasMultipleServers;
 
 	const [showConfirmRemove, setShowConfirmRemove] = useState(false);
 	const [serverToRemove, setServerToRemove] = useState(null);
 	const [editMode, setEditMode] = useState(false);
+	const [backdropItem, setBackdropItem] = useState(null);
+
+	const blurPx = settings.backdropBlurDetail > 0 ? settings.backdropBlurDetail : 24;
+
+	useEffect(() => {
+		if (!open) {
+			setBackdropItem(null);
+			return;
+		}
+		let cancelled = false;
+		(async () => {
+			try {
+				let items = [];
+				if (unifiedMode) {
+					items = await connectionPool.getRandomItemsFromAllServers('both', 8);
+				} else if (api) {
+					const res = await api.getRandomItems('both', 8);
+					items = res.Items || [];
+				}
+				const withBackdrop = items.find((i) => getBackdropId(i) || getPrimaryImageId(i));
+				if (!cancelled) {
+					setBackdropItem(withBackdrop || items[0] || null);
+				}
+			} catch {
+				if (!cancelled) setBackdropItem(null);
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [open, unifiedMode, api]);
+
+	const backdropUrl = getBackdropUrlForItem(backdropItem, serverUrl);
 
 	const handleLogout = useCallback(async () => {
 		await logout();
@@ -108,7 +164,7 @@ const AccountModal = ({
 
 	const profileImageUrl = (entry) => {
 		if (entry.primaryImageTag) {
-			return `${entry.url}/Users/${entry.userId}/Images/Primary?tag=${entry.primaryImageTag}&quality=90&maxHeight=200`;
+			return `${entry.url}/Users/${entry.userId}/Images/Primary?tag=${entry.primaryImageTag}&quality=90&maxHeight=480`;
 		}
 		return null;
 	};
@@ -117,17 +173,23 @@ const AccountModal = ({
 
 	return (
 		<>
-			<Popup
-				open={open}
-				onClose={onClose}
-				position="center"
-				scrimType="translucent"
-				noAutoDismiss
-			>
-				<div className={css.modal}>
-					<div className={css.topBar}>
+			<div className={css.overlay}>
+				<div className={css.backdropLayer} aria-hidden>
+					{backdropUrl && (
+						<img
+							src={backdropUrl}
+							alt=""
+							className={css.backdropImage}
+							style={blurPx > 0 ? {filter: `blur(${blurPx}px)`, WebkitFilter: `blur(${blurPx}px)`} : undefined}
+						/>
+					)}
+				</div>
+				<div className={css.backdropGradient} />
+
+				<div className={css.shell}>
+					<div className={css.header}>
 						<h2 className={css.heading}>Who&apos;s watching?</h2>
-						<div className={css.topActions}>
+						<div className={css.headerActions}>
 							<SpottableButton
 								type="button"
 								className={`${css.textBtn} ${editMode ? css.textBtnOn : ''}`}
@@ -137,73 +199,75 @@ const AccountModal = ({
 								{editMode ? 'Done' : 'Edit'}
 							</SpottableButton>
 							<SpottableButton className={css.closeBtn} onClick={onClose} spotlightId="account-close">
-								<svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+								<svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
 									<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
 								</svg>
 							</SpottableButton>
 						</div>
 					</div>
 
-					<ProfileRow className={css.profileRow}>
-						{servers.map((entry, index) => {
-							const isActive = activeServerInfo?.serverId === entry.serverId &&
-								activeServerInfo?.userId === entry.userId;
-							let host = entry.url;
-							try {
-								host = parseUrl(entry.url).hostname;
-							} catch (e) { /* keep raw */ }
-							const img = profileImageUrl(entry);
-							return (
-								<SpottableDiv
-									key={`${entry.serverId}-${entry.userId}`}
-									className={`${css.profileTile} ${isActive ? css.profileTileActive : ''}`}
-									data-server-id={entry.serverId}
-									data-user-id={entry.userId}
-									onClick={handleProfileActivate}
-									spotlightId={`account-profile-${index}`}
-								>
-									<div className={css.avatarWrap}>
-										{img ? (
-											<img src={img} alt="" className={css.avatar} />
-										) : (
-											<div className={css.avatarFallback}>
-												{entry.username?.charAt(0)?.toUpperCase() || '?'}
-											</div>
-										)}
-										{editMode && !isActive && (
-											<div className={css.removeBadge} aria-hidden>×</div>
-										)}
-									</div>
-									<span className={css.profileName}>{entry.username}</span>
-									<span className={css.profileHost}>{host}</span>
-								</SpottableDiv>
-							);
-						})}
+					<div className={css.posterStage}>
+						<ProfileRow className={css.posterRow}>
+							{servers.map((entry, index) => {
+								const isActive = activeServerInfo?.serverId === entry.serverId &&
+									activeServerInfo?.userId === entry.userId;
+								let host = entry.url;
+								try {
+									host = parseUrl(entry.url).hostname;
+								} catch (e) { /* keep raw */ }
+								const img = profileImageUrl(entry);
+								return (
+									<SpottableDiv
+										key={`${entry.serverId}-${entry.userId}`}
+										className={`${css.posterTile} ${isActive ? css.posterTileActive : ''}`}
+										data-server-id={entry.serverId}
+										data-user-id={entry.userId}
+										onClick={handleProfileActivate}
+										spotlightId={`account-profile-${index}`}
+									>
+										<div className={css.posterFrame}>
+											{img ? (
+												<img src={img} alt="" className={css.posterImg} />
+											) : (
+												<div className={css.posterFallback}>
+													{entry.username?.charAt(0)?.toUpperCase() || '?'}
+												</div>
+											)}
+											{editMode && !isActive && (
+												<div className={css.removeBadge} aria-hidden>×</div>
+											)}
+										</div>
+										<span className={css.posterName}>{entry.username}</span>
+										<span className={css.posterHost}>{host}</span>
+									</SpottableDiv>
+								);
+							})}
 
-						<SpottableDiv
-							className={css.profileTile}
-							onClick={handleAddUser}
-							spotlightId="account-add-profile"
-						>
-							<div className={`${css.avatarWrap} ${css.addAvatar}`}>
-								<span className={css.addPlus}>+</span>
-							</div>
-							<span className={css.profileName}>Add profile</span>
-						</SpottableDiv>
-					</ProfileRow>
+							<SpottableDiv
+								className={css.posterTile}
+								onClick={handleAddUser}
+								spotlightId="account-add-profile"
+							>
+								<div className={`${css.posterFrame} ${css.posterFrameAdd}`}>
+									<span className={css.addPlus}>+</span>
+								</div>
+								<span className={css.posterName}>Add profile</span>
+							</SpottableDiv>
+						</ProfileRow>
+					</div>
 
 					{editMode && (
 						<p className={css.editHint}>Choose a profile to remove from this device.</p>
 					)}
 
-					<div className={css.footer}>
+					<div className={css.footerBar}>
 						<SpottableButton className={css.footerBtn} onClick={handleAddServer} spotlightId="account-change-server">
 							Change server
 						</SpottableButton>
 						<SpottableButton className={css.footerBtn} onClick={handleLogout} spotlightId="account-logout">
 							Sign out
 						</SpottableButton>
-						{hasMultipleUsers && (
+						{servers.length > 1 && (
 							<SpottableButton
 								className={`${css.footerBtn} ${css.footerBtnDanger}`}
 								onClick={handleLogoutAll}
@@ -214,7 +278,7 @@ const AccountModal = ({
 						)}
 					</div>
 				</div>
-			</Popup>
+			</div>
 
 			{showConfirmRemove && serverToRemove && (
 				<Popup

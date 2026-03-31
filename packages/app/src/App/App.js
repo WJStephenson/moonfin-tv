@@ -6,7 +6,7 @@ import {AuthProvider, useAuth} from '../context/AuthContext';
 import {useSettings} from '../context/SettingsContext';
 import * as playback from '../services/playback';
 import * as connectionPool from '../services/connectionPool';
-import {isBackKey, isYellowKey, KEYS} from '../utils/keys';
+import {isBackKey, isOrangeKey, KEYS} from '../utils/keys';
 import {isTizen, isWebOS} from '../platform';
 import {initVideo, cleanupVideoElement, setupVisibilityHandler, setupPlatformLifecycle} from '../services/video';
 import {SettingsProvider} from '../context/SettingsContext';
@@ -357,7 +357,7 @@ const AppContent = (props) => {
 			}
 			if (
 				isWebOS() &&
-				isYellowKey(e) &&
+				isOrangeKey(e) &&
 				isAuthenticated &&
 				!showExitDialog &&
 				!showAccountModal &&
