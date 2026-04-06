@@ -1,6 +1,8 @@
-import {useCallback, useState, useEffect} from 'react';
+import {useCallback, useState, useEffect, useRef} from 'react';
 import Spottable from '@enact/spotlight/Spottable';
+import Spotlight from '@enact/spotlight';
 import SpotlightContainerDecorator from '@enact/spotlight/SpotlightContainerDecorator';
+import Scroller from '@enact/sandstone/Scroller';
 import Popup from '@enact/sandstone/Popup';
 import {useAuth} from '../../context/AuthContext';
 import {useSettings} from '../../context/SettingsContext';
@@ -10,9 +12,19 @@ import {getImageUrl, getBackdropId, getPrimaryImageId} from '../../utils/helpers
 
 import css from './AccountModal.module.less';
 
+const AccountDialogContainer = SpotlightContainerDecorator({
+	enterTo: 'default-element',
+	defaultElement: '.spottable-default',
+	restrict: 'self-only',
+	leaveFor: {left: '', right: '', up: '', down: ''}
+}, 'div');
+
+const ProfileList = SpotlightContainerDecorator({
+	enterTo: 'last-focused',
+	restrict: 'self-first'
+}, 'ul');
+
 const SpottableButton = Spottable('button');
-const SpottableDiv = Spottable('div');
-const ProfileRow = SpotlightContainerDecorator({enterTo: 'last-focused', restrict: 'self-first'}, 'div');
 
 const getItemServerUrl = (item, fallback) => item?._serverUrl || fallback;
 
@@ -32,6 +44,7 @@ const getBackdropUrlForItem = (item, serverUrl) => {
 
 const AccountModal = ({
 	open,
+	backConsumerRef,
 	onClose,
 	onLogout,
 	onAddServer,
@@ -57,6 +70,7 @@ const AccountModal = ({
 	const [serverToRemove, setServerToRemove] = useState(null);
 	const [editMode, setEditMode] = useState(false);
 	const [backdropItem, setBackdropItem] = useState(null);
+	const prevConfirmOpenRef = useRef(false);
 
 	const blurPx = settings.backdropBlurDetail > 0 ? settings.backdropBlurDetail : 24;
 
@@ -88,6 +102,41 @@ const AccountModal = ({
 		};
 	}, [open, unifiedMode, api]);
 
+	useEffect(() => {
+		if (!open) return;
+		const t = setTimeout(() => {
+			const activeIdx = servers.findIndex(
+				(s) => s.serverId === activeServerInfo?.serverId && s.userId === activeServerInfo?.userId
+			);
+			if (activeIdx >= 0) {
+				Spotlight.focus(`account-profile-${activeIdx}`);
+			} else if (servers.length > 0) {
+				Spotlight.focus('account-profile-0');
+			} else {
+				Spotlight.focus('account-add-profile');
+			}
+		}, 100);
+		return () => clearTimeout(t);
+	}, [open, servers, activeServerInfo]);
+
+	useEffect(() => {
+		if (!showConfirmRemove) return;
+		const t = setTimeout(() => Spotlight.focus('account-cancel-remove'), 100);
+		return () => clearTimeout(t);
+	}, [showConfirmRemove]);
+
+	useEffect(() => {
+		if (!open) {
+			prevConfirmOpenRef.current = false;
+			return;
+		}
+		const wasOpen = prevConfirmOpenRef.current;
+		prevConfirmOpenRef.current = showConfirmRemove;
+		if (showConfirmRemove || !wasOpen) return;
+		const t = setTimeout(() => Spotlight.focus('account-switcher-dialog'), 80);
+		return () => clearTimeout(t);
+	}, [open, showConfirmRemove]);
+
 	const backdropUrl = getBackdropUrlForItem(backdropItem, serverUrl);
 
 	const handleLogout = useCallback(async () => {
@@ -114,6 +163,29 @@ const AccountModal = ({
 		onClose?.();
 		onAddServer?.();
 	}, [startAddServerFlow, onClose, onAddServer]);
+
+	const handleCancelRemove = useCallback(() => {
+		setShowConfirmRemove(false);
+		setServerToRemove(null);
+	}, []);
+
+	useEffect(() => {
+		if (!backConsumerRef) return;
+		if (!open) {
+			backConsumerRef.current = null;
+			return;
+		}
+		backConsumerRef.current = () => {
+			if (showConfirmRemove) {
+				handleCancelRemove();
+				return true;
+			}
+			return false;
+		};
+		return () => {
+			backConsumerRef.current = null;
+		};
+	}, [open, showConfirmRemove, backConsumerRef, handleCancelRemove]);
 
 	const handleProfileActivate = useCallback(async (e) => {
 		const serverId = e.currentTarget.dataset.serverId;
@@ -153,11 +225,6 @@ const AccountModal = ({
 		}
 	}, [serverToRemove, removeUser]);
 
-	const handleCancelRemove = useCallback(() => {
-		setShowConfirmRemove(false);
-		setServerToRemove(null);
-	}, []);
-
 	const toggleEdit = useCallback(() => {
 		setEditMode(v => !v);
 	}, []);
@@ -174,7 +241,7 @@ const AccountModal = ({
 	return (
 		<>
 			<div className={css.overlay}>
-				<div className={css.backdropLayer} aria-hidden>
+				<div className={css.backdropLayer} aria-hidden="true">
 					{backdropUrl && (
 						<img
 							src={backdropUrl}
@@ -184,100 +251,144 @@ const AccountModal = ({
 						/>
 					)}
 				</div>
-				<div className={css.backdropGradient} />
+				<div className={css.backdropGradient} aria-hidden="true" />
 
-				<div className={css.shell}>
-					<div className={css.header}>
-						<h2 className={css.heading}>Who&apos;s watching?</h2>
+				<AccountDialogContainer
+					className={css.shell}
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="account-switcher-title"
+					spotlightId="account-switcher-dialog"
+				>
+					<header className={css.header}>
+						<h1 id="account-switcher-title" className={css.heading}>
+							Who&apos;s watching?
+						</h1>
 						<div className={css.headerActions}>
 							<SpottableButton
 								type="button"
 								className={`${css.textBtn} ${editMode ? css.textBtnOn : ''}`}
 								onClick={toggleEdit}
 								spotlightId="account-edit-profiles"
+								aria-pressed={editMode}
+								aria-label={editMode ? 'Done editing profiles' : 'Edit profiles'}
 							>
 								{editMode ? 'Done' : 'Edit'}
 							</SpottableButton>
-							<SpottableButton className={css.closeBtn} onClick={onClose} spotlightId="account-close">
-								<svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
+							<SpottableButton
+								type="button"
+								className={css.closeBtn}
+								onClick={onClose}
+								spotlightId="account-close"
+								aria-label="Close profile switcher"
+							>
+								<svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28" aria-hidden="true" focusable="false">
 									<path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
 								</svg>
 							</SpottableButton>
 						</div>
-					</div>
+					</header>
 
 					<div className={css.posterStage}>
-						<ProfileRow className={css.posterRow}>
-							{servers.map((entry, index) => {
-								const isActive = activeServerInfo?.serverId === entry.serverId &&
-									activeServerInfo?.userId === entry.userId;
-								let host = entry.url;
-								try {
-									host = parseUrl(entry.url).hostname;
-								} catch (e) { /* keep raw */ }
-								const img = profileImageUrl(entry);
-								return (
-									<SpottableDiv
-										key={`${entry.serverId}-${entry.userId}`}
-										className={`${css.posterTile} ${isActive ? css.posterTileActive : ''}`}
-										data-server-id={entry.serverId}
-										data-user-id={entry.userId}
-										onClick={handleProfileActivate}
-										spotlightId={`account-profile-${index}`}
-									>
-										<div className={css.posterFrame}>
-											{img ? (
-												<img src={img} alt="" className={css.posterImg} />
-											) : (
-												<div className={css.posterFallback}>
-													{entry.username?.charAt(0)?.toUpperCase() || '?'}
-												</div>
-											)}
-											{editMode && !isActive && (
-												<div className={css.removeBadge} aria-hidden>×</div>
-											)}
-										</div>
-										<span className={css.posterName}>{entry.username}</span>
-										<span className={css.posterHost}>{host}</span>
-									</SpottableDiv>
-								);
-							})}
+						<Scroller
+							className={css.profileScroller}
+							direction="horizontal"
+							horizontalScrollbar="hidden"
+							verticalScrollbar="hidden"
+						>
+							<ProfileList className={css.posterRow} aria-label="Profiles">
+								{servers.map((entry, index) => {
+									const isActive = activeServerInfo?.serverId === entry.serverId &&
+										activeServerInfo?.userId === entry.userId;
+									let host = entry.url;
+									try {
+										host = parseUrl(entry.url).hostname;
+									} catch {
+										host = entry.url;
+									}
+									const img = profileImageUrl(entry);
+									const labelParts = [
+										entry.username,
+										host,
+										isActive ? 'current profile' : null,
+										editMode && !isActive ? 'press to remove from this device' : null
+									].filter(Boolean);
+									const ariaLabel = labelParts.join(', ');
+									return (
+										<li key={`${entry.serverId}-${entry.userId}`} className={css.posterListItem}>
+											<SpottableButton
+												type="button"
+												className={`${css.posterTile} ${isActive ? css.posterTileActive : ''} ${isActive ? 'spottable-default' : ''}`}
+												data-server-id={entry.serverId}
+												data-user-id={entry.userId}
+												onClick={handleProfileActivate}
+												spotlightId={`account-profile-${index}`}
+												aria-label={ariaLabel}
+												aria-current={isActive ? 'true' : undefined}
+											>
+												<span className={css.posterFrame}>
+													{img ? (
+														<img src={img} alt="" className={css.posterImg} />
+													) : (
+														<span className={css.posterFallback} aria-hidden="true">
+															{entry.username?.charAt(0)?.toUpperCase() || '?'}
+														</span>
+													)}
+													{editMode && !isActive && (
+														<span className={css.removeBadge} aria-hidden="true">×</span>
+													)}
+												</span>
+												<span className={css.posterName}>{entry.username}</span>
+												<span className={css.posterHost}>{host}</span>
+											</SpottableButton>
+										</li>
+									);
+								})}
 
-							<SpottableDiv
-								className={css.posterTile}
-								onClick={handleAddUser}
-								spotlightId="account-add-profile"
-							>
-								<div className={`${css.posterFrame} ${css.posterFrameAdd}`}>
-									<span className={css.addPlus}>+</span>
-								</div>
-								<span className={css.posterName}>Add profile</span>
-							</SpottableDiv>
-						</ProfileRow>
+								<li className={css.posterListItem}>
+									<SpottableButton
+										type="button"
+										className={`${css.posterTile} ${servers.length === 0 ? 'spottable-default' : ''}`}
+										onClick={handleAddUser}
+										spotlightId="account-add-profile"
+										aria-label="Add profile"
+									>
+										<span className={`${css.posterFrame} ${css.posterFrameAdd}`} aria-hidden="true">
+											<span className={css.addPlus}>+</span>
+										</span>
+										<span className={css.posterName}>Add profile</span>
+									</SpottableButton>
+								</li>
+							</ProfileList>
+						</Scroller>
 					</div>
 
 					{editMode && (
-						<p className={css.editHint}>Choose a profile to remove from this device.</p>
+						<p className={css.editHint} role="status" aria-live="polite">
+							Choose a profile to remove from this device.
+						</p>
 					)}
 
-					<div className={css.footerBar}>
-						<SpottableButton className={css.footerBtn} onClick={handleAddServer} spotlightId="account-change-server">
+					<footer className={css.footerBar}>
+						<SpottableButton type="button" className={css.footerBtn} onClick={handleAddServer} spotlightId="account-change-server">
 							Change server
 						</SpottableButton>
-						<SpottableButton className={css.footerBtn} onClick={handleLogout} spotlightId="account-logout">
+						<SpottableButton type="button" className={css.footerBtn} onClick={handleLogout} spotlightId="account-logout">
 							Sign out
 						</SpottableButton>
 						{servers.length > 1 && (
 							<SpottableButton
+								type="button"
 								className={`${css.footerBtn} ${css.footerBtnDanger}`}
 								onClick={handleLogoutAll}
 								spotlightId="account-logout-all"
+								aria-label="Sign out everyone from this device"
 							>
 								Sign out everyone
 							</SpottableButton>
 						)}
-					</div>
-				</div>
+					</footer>
+				</AccountDialogContainer>
 			</div>
 
 			{showConfirmRemove && serverToRemove && (
@@ -287,10 +398,11 @@ const AccountModal = ({
 					position="center"
 					scrimType="translucent"
 					noAutoDismiss
+					spotlightRestrict="self-only"
 				>
-					<div className={css.confirmModal}>
-						<h2 className={css.confirmTitle}>Remove profile?</h2>
-						<p className={css.confirmText}>
+					<div className={css.confirmModal} role="alertdialog" aria-labelledby="account-remove-title" aria-describedby="account-remove-desc">
+						<h2 id="account-remove-title" className={css.confirmTitle}>Remove profile?</h2>
+						<p id="account-remove-desc" className={css.confirmText}>
 							Remove <strong>{serverToRemove.username}</strong> from this device
 							({serverToRemove.serverName})? You can add this account again later.
 						</p>

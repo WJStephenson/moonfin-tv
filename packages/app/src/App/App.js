@@ -97,6 +97,7 @@ const AppContent = (props) => {
 	const [libraries, setLibraries] = useState([]);
 	const [showAccountModal, setShowAccountModal] = useState(false);
 	const [showExitDialog, setShowExitDialog] = useState(false);
+	const accountModalBackRef = useRef(null);
 	const cleanupHandlersRef = useRef(null);
 	const backHandlerRef = useRef(null);
 	const detailsItemStackRef = useRef([]);
@@ -379,6 +380,9 @@ const AppContent = (props) => {
 				}
 
 				if (showAccountModal) {
+					if (accountModalBackRef.current?.()) {
+						return;
+					}
 					setShowAccountModal(false);
 					return;
 				}
@@ -927,6 +931,7 @@ const AppContent = (props) => {
 			</Suspense>
 			<AccountModal
 				open={showAccountModal}
+				backConsumerRef={accountModalBackRef}
 				onClose={handleCloseAccountModal}
 				onLogout={handleSwitchUser}
 				onAddServer={handleAddServer}

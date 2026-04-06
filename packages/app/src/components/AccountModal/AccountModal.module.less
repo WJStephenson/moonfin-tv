@@ -133,6 +133,14 @@
 	justify-content: center;
 	min-height: 0;
 	padding: 16px 0 24px;
+	width: 100%;
+}
+
+.profileScroller {
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+	flex: 1;
 }
 
 .posterRow {
@@ -142,28 +150,23 @@
 	justify-content: center;
 	align-items: flex-end;
 	gap: 36px;
-	overflow-x: auto;
-	overflow-y: hidden;
+	list-style: none;
+	margin: 0;
 	padding: 24px 12px 8px;
-	max-width: 100%;
-	scroll-behavior: smooth;
+	box-sizing: border-box;
+	min-height: min-content;
+}
 
-	&::-webkit-scrollbar {
-		height: 10px;
-	}
-
-	&::-webkit-scrollbar-track {
-		background: rgba(255, 255, 255, 0.06);
-		border-radius: 5px;
-	}
-
-	&::-webkit-scrollbar-thumb {
-		background: rgba(255, 255, 255, 0.25);
-		border-radius: 5px;
-	}
+.posterListItem {
+	display: block;
+	flex-shrink: 0;
+	margin: 0;
+	padding: 0;
 }
 
 .posterTile {
+	appearance: none;
+	-webkit-appearance: none;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -176,6 +179,9 @@
 	cursor: pointer;
 	outline: none;
 	transition: transform 0.2s;
+	font: inherit;
+	text-align: center;
+	color: inherit;
 
 	&:focus {
 		outline: none;
@@ -192,6 +198,7 @@
 }
 
 .posterFrame {
+	display: block;
 	position: relative;
 	width: 100%;
 	padding-bottom: 150%;
@@ -201,6 +208,7 @@
 	background: rgba(0, 0, 0, 0.35);
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 	transition: box-shadow 0.2s;
+	box-sizing: border-box;
 }
 
 .posterImg {
