@@ -78,8 +78,9 @@ if (doWebos) {
 	if (fs.existsSync(manifestPath)) {
 		const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 		const old = manifest.version;
+		const ipkFilename = `org.moonfinplus.webos_${newVersion}_all.ipk`;
 		manifest.version = newVersion;
-		manifest.ipkUrl = `org.moonfinplus.webos_${newVersion}_all.ipk`;
+		manifest.ipkUrl = `https://github.com/WJStephenson/moonfin-tv/releases/download/v${newVersion}/${ipkFilename}`;
 		if (manifest.ipkHash) manifest.ipkHash.sha256 = '';
 		fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
 		console.log(`  build-webos/org.moonfinplus.webos.manifest.json: ${old} → ${newVersion}`);

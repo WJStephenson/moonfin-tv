@@ -26,7 +26,7 @@ const hashSum = crypto.createHash('sha256');
 hashSum.update(fileBuffer);
 const sha256 = hashSum.digest('hex');
 
-console.log(`Calculated SHA256: ${sha256}`);q
+console.log(`Calculated SHA256: ${sha256}`);
 
 // Read manifest file
 const manifestPath = path.join(__dirname, 'org.moonfinplus.webos.manifest.json');
